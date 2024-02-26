@@ -40,6 +40,8 @@ import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import java.time.Duration;
+import java.awt.Color;
+import javax.swing.BorderFactory;
 
 
 public class SPM {
@@ -71,6 +73,7 @@ public class SPM {
 		exportJSONMenuItem.addActionListener(e -> exportToJSON(man));
 		
 		JMenuItem exportSpotifyMenuItem = new JMenuItem("Export Playlist to Spotify");
+		exportSpotifyMenuItem.addActionListener(e -> uploadPlaylist(man));
 		
 		JMenu playlistMenu = new JMenu("Playlist");
 		playlistMenu.add(importSpotifyMenuItem);
@@ -80,12 +83,21 @@ public class SPM {
 		
 		//Menu Component //Profile Menu
 		JMenuItem info = new JMenuItem("User Info");
+		info.addActionListener(e -> showUserInfo(man));
+		
+		JMenuItem playlists = new JMenuItem("User Playlists");
+		playlists.addActionListener(e -> showUserPlaylists(playlistContainer,man));
+		
 		JMenuItem status = new JMenuItem("Authorization Status");
 		status.addActionListener(e -> showStatus(man));
 		
+		
+		
 		JMenu profile = new JMenu("Profile");
 		profile.add(info);
+		profile.add(playlists);
 		profile.add(status);
+		
 		
 		//MenuBar Composition
 		JMenuBar menuBar = new JMenuBar();
@@ -107,6 +119,160 @@ public class SPM {
 		
 	}
 	
+	public static void uploadPlaylist(PlaylistManager man){
+		String playlistID = new JSONObject(createPlaylist(man)).getString("id");
+		JSONArray currentPlaylist = man.playlist;
+		int size = currentPlaylist.length();
+		int countSize = 0;
+		
+		
+		
+		while(countSize <= size){
+			JSONArray trackUris = new JSONArray();
+			
+			for (int i = countSize; i <countSize+100 && i < size; i++){
+				trackUris.put(man.playlist.getJSONObject(i).getJSONObject("track").getString("uri"));
+				
+				
+			}
+			
+			JSONObject trackUriObject = new JSONObject();
+			trackUriObject.put("uris",trackUris);
+			
+			try{
+			HttpRequest addSongRequest = HttpRequest.newBuilder()
+				.uri(new URI("https://api.spotify.com/v1/playlists/" + playlistID + "/tracks"))
+				.headers("Authorization","Bearer " + man.authorizedToken)
+				.POST(HttpRequest.BodyPublishers.ofString(trackUriObject.toString()))
+				.build();
+				
+				HttpResponse<String> response = HttpClient.newHttpClient().send(addSongRequest, HttpResponse.BodyHandlers.ofString());
+			} catch(Exception e){}
+				
+			countSize += 100;
+		}
+		
+		
+		
+	}
+	
+	public static String createPlaylist(PlaylistManager man){
+		
+		String responseBody = null;
+		JSONObject requestBody = new JSONObject();
+		requestBody.put("name","default");
+		
+		try{
+			HttpRequest createRequest = HttpRequest.newBuilder()
+				.uri(new URI("https://api.spotify.com/v1/users/" + man.userID + "/playlists"))
+				.headers("Authorization","Bearer " + man.authorizedToken)
+				.POST(HttpRequest.BodyPublishers.ofString(requestBody.toString()))
+				.build();
+
+			HttpResponse<String> response = HttpClient.newHttpClient().send(createRequest, HttpResponse.BodyHandlers.ofString());	
+			responseBody = response.body();
+		} catch(Exception e){}
+		
+		
+		
+		return (responseBody);
+	}
+	
+	public static void showUserPlaylists(JPanel playlistContainer, PlaylistManager man){
+		
+		
+		JSONObject userPlaylistsJSON = new JSONObject(getUserPlaylists(man));
+		int userPlaylistsTotal = userPlaylistsJSON.getInt("total");
+		JSONArray userPlaylistsJSONArray = userPlaylistsJSON.getJSONArray("items");
+		
+		
+		JPanel userPlaylistsPanel = new JPanel();
+		userPlaylistsPanel.setLayout(new BoxLayout(userPlaylistsPanel,BoxLayout.Y_AXIS));
+		
+		
+		
+		for(int i = 0; i < userPlaylistsTotal ; i++){
+			JSONObject playlistJSON = userPlaylistsJSONArray.getJSONObject(i);
+			String playlistID = playlistJSON.getString("id");
+			
+			JButton loadButton = new JButton("load");
+			loadButton.addActionListener(e -> {
+				man.playlist = getPlaylistTracks(playlistID);
+				populate(playlistContainer, man);
+			} );
+			
+			JLabel playlistName = new JLabel(playlistJSON.getString("name"));
+			playlistName.setVerticalAlignment(JLabel.BOTTOM);
+			
+			JPanel playlistsRow = new JPanel();
+			playlistsRow.add(playlistName,JLabel.CENTER);
+			playlistsRow.add(loadButton);
+			
+			userPlaylistsPanel.add(playlistsRow);
+			
+		}
+		
+		
+		
+		
+		JFrame userPlaylistsFrame = new JFrame("User Information");
+		userPlaylistsFrame.add(userPlaylistsPanel, BorderLayout.CENTER);
+		
+		userPlaylistsFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+		userPlaylistsFrame.setLocationRelativeTo(null);
+		userPlaylistsFrame.setResizable(false);
+		userPlaylistsFrame.pack();
+		userPlaylistsFrame.setVisible(true);
+	}
+	
+	public static String getUserPlaylists(PlaylistManager man){
+		return (getRequestResponse("https://api.spotify.com/v1/me/playlists",man.authorizedToken));
+	}
+	
+	public static void showUserInfo(PlaylistManager man){
+		
+		JSONObject userInfoJSON = new JSONObject(getUserProfile(man));
+		JLabel profileImageIconLabel = null;
+		
+		try{
+			URL profileImageURL = new URL(userInfoJSON.getJSONArray("images").getJSONObject(0).getString("url"));
+			Image profileImage = ImageIO.read(profileImageURL);
+			ImageIcon profileImageIcon = new ImageIcon(profileImage.getScaledInstance(100,100,Image.SCALE_DEFAULT));
+			profileImageIconLabel = new JLabel(profileImageIcon);
+			profileImageIconLabel.setVerticalAlignment(JLabel.TOP);
+		} catch (Exception e){}
+		
+		JLabel name = new JLabel("Name: " + userInfoJSON.getString("display_name"), SwingConstants.CENTER);
+		JLabel email = new JLabel("Email: " + userInfoJSON.getString("email"), SwingConstants.CENTER);
+		JLabel id = new JLabel("ID: " + userInfoJSON.getString("id"), SwingConstants.CENTER);
+		JLabel country = new JLabel("Country: " + userInfoJSON.getString("country"), SwingConstants.CENTER);	
+		JLabel subscription = new JLabel("Subscription: " + userInfoJSON.getString("type"), SwingConstants.CENTER);
+		
+		
+		JPanel userInfoPanel = new JPanel();
+		userInfoPanel.setLayout(new BoxLayout(userInfoPanel,BoxLayout.Y_AXIS));
+		userInfoPanel.add(name);
+		userInfoPanel.add(email);
+		userInfoPanel.add(id);
+		userInfoPanel.add(country);
+		userInfoPanel.add(subscription);
+		
+		JFrame userInfoFrame = new JFrame("User Information");
+		userInfoFrame.add(userInfoPanel,BorderLayout.CENTER);
+		userInfoFrame.add(profileImageIconLabel, BorderLayout.WEST);
+		
+		userInfoFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+		userInfoFrame.setLocationRelativeTo(null);
+		userInfoFrame.setResizable(false);
+		userInfoFrame.pack();
+		userInfoFrame.setVisible(true);
+	}
+	
+	public static String getUserProfile(PlaylistManager man){
+		String token = man.authorizedToken;
+		return (getRequestResponse("https://api.spotify.com/v1/me",token));
+	}
+	
 	public static void showStatus(PlaylistManager man){
 		
 		String authorization = man.authorizedToken==null?"Unauthorized":"Authorized";
@@ -121,6 +287,7 @@ public class SPM {
 			if(man.authorizedToken!=null){ 
 				currentStatus.setText("Authorized");
 				login.setVisible(false);
+				man.userID = new JSONObject(getUserProfile(man)).getString("id");
 			} 
 		});
 		
@@ -157,14 +324,9 @@ public class SPM {
 		}
 		
 	}
-	
-	public static String getUserProfile(PlaylistManager man){
-		String token = man.authorizedToken;
-		return (getRequestResponse("https://api.spotify.com/v1/me",token));
-	}
 
 
-	public static void promptPlaylistID(JPanel playlistContainer, PlaylistManager playlistMan){
+	public static void promptPlaylistID(JPanel playlistContainer, PlaylistManager man){
 		JFrame prompt = new JFrame("Playlist ID");
 		prompt.getContentPane().add(new JLabel("Please Enter Public Playlist ID", SwingConstants.CENTER), BorderLayout.NORTH);
 
@@ -174,8 +336,8 @@ public class SPM {
 			playlistInput.disable();		
 
 			if(validatePlaylistID(playlistInput.getText())){
-				playlistMan.playlist = getPlaylistTracks(playlistInput.getText());
-				populate(playlistContainer, playlistMan);
+				man.playlist = getPlaylistTracks(playlistInput.getText());
+				populate(playlistContainer, man);
 				prompt.dispose();
 			} else {
 				prompt("Incorrect ID", "Incorrect ID");
@@ -196,11 +358,11 @@ public class SPM {
 		
 	}
 
-	public static void populate(JPanel playlistContainer, PlaylistManager playlistMan){
+	public static void populate(JPanel playlistContainer, PlaylistManager man){
 		
 
 		//progressBar
-		JProgressBar proBar = new JProgressBar(0,playlistMan.playlist.length());
+		JProgressBar proBar = new JProgressBar(0,man.playlist.length());
 
 		JFrame progressWindow = new JFrame("Progress Bar");
 		progressWindow.getContentPane().add(proBar, BorderLayout.CENTER);
@@ -215,11 +377,11 @@ public class SPM {
 		SwingWorker sw = new SwingWorker(){
 			@Override
 			protected String doInBackground(){
-				for(int i = 0; i<playlistMan.playlist.length(); i++) {
+				for(int i = 0; i<man.playlist.length(); i++) {
 
 
 					try{
-						URL trackCoverUrl = new URL(playlistMan.playlist.getJSONObject(i).getJSONObject("track").getJSONObject("album").getJSONArray("images").getJSONObject(0).getString("url"));
+						URL trackCoverUrl = new URL(man.playlist.getJSONObject(i).getJSONObject("track").getJSONObject("album").getJSONArray("images").getJSONObject(0).getString("url"));
 						Image trackCoverImage = ImageIO.read(trackCoverUrl);
 						
 						ImageIcon trackCover = new ImageIcon(trackCoverImage.getScaledInstance(100,100,Image.SCALE_DEFAULT));
@@ -401,7 +563,7 @@ public class SPM {
 	}
 	
 	public static String getAuthorizationCode(){
-		String site = "https://accounts.spotify.com/authorize?client_id=c592a3c9e9b34be59a79bfe0b98aa6a1&redirect_uri=http://localhost/&response_type=code";
+		String site = "https://accounts.spotify.com/authorize?client_id=c592a3c9e9b34be59a79bfe0b98aa6a1&redirect_uri=http://localhost/&response_type=code&scope=user-read-email,user-read-private,playlist-modify-public,playlist-modify-private,playlist-read-private";
 		
 		WebDriver driver = new ChromeDriver();
 		driver.get(site);
@@ -422,4 +584,5 @@ class PlaylistManager{
 	JSONArray playlist = null;
 	String authorizedToken = null;
 	String token = null;
+	String userID = null;
 }
