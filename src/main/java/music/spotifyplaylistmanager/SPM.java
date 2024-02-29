@@ -53,6 +53,7 @@ import java.awt.Component;
 import java.awt.Point;
 import java.util.List;
 import java.util.Arrays;
+import javax.swing.JPopupMenu;
 
 
 public class SPM {
@@ -101,7 +102,6 @@ public class SPM {
 		
 		JMenuItem status = new JMenuItem("Authorization Status");
 		status.addActionListener(e -> showStatus(man));
-		
 		
 		
 		JMenu profile = new JMenu("Profile");
@@ -394,29 +394,29 @@ public class SPM {
 				JPanel header = new JPanel(new GridBagLayout());
 				
 				c.gridx = 0;
-				c.insets = new Insets(3,3,3,3);
-				Data numHeaderLabel = new Data ("#",Data.Category.NUMBER, true);
+				c.insets = new Insets(0,3,0,3);
+				Data numHeaderLabel = new Data ("#",Data.Category.NUMBER, true,c);
 				numHeaderLabel.setPreferredSize(new Dimension(25,25));
 				header.add(numHeaderLabel,c);
 				
 				c = new GridBagConstraints();
 				c.gridx = 1;
-				c.insets = new Insets(3,3,3,3);
-				Data coverHeaderLabel = new Data("Cover",Data.Category.COVER,true);
+				c.insets = new Insets(0,3,0,3);
+				Data coverHeaderLabel = new Data("Cover",Data.Category.COVER,true,c);
 				coverHeaderLabel.setPreferredSize(new Dimension(100,100));
 				header.add(coverHeaderLabel,c);
 				
 				c = new GridBagConstraints();
 				c.gridx = 2;
-				c.insets = new Insets(3,3,3,3);
-				Data trackNameHeaderLabel = new Data("Song",Data.Category.TRACKNAME,true);
+				c.insets = new Insets(0,3,0,3);
+				Data trackNameHeaderLabel = new Data("Song",Data.Category.TRACKNAME,true,c);
 				trackNameHeaderLabel.setPreferredSize(new Dimension(150,150));
 				header.add(trackNameHeaderLabel,c);
 				
 				c = new GridBagConstraints();
 				c.gridx = 3;
-				c.insets = new Insets(3,3,3,3);
-				Data artistNameHeaderLabel = new Data("Artists", Data.Category.ARTISTS,true);
+				c.insets = new Insets(0,3,0,3);
+				Data artistNameHeaderLabel = new Data("Artists", Data.Category.ARTISTS,true,c);
 				artistNameHeaderLabel.setPreferredSize(new Dimension(150,150));
 				header.add(artistNameHeaderLabel,c);
 				
@@ -441,28 +441,28 @@ public class SPM {
 						c = new GridBagConstraints();
 						c.gridx = 0;
 						c.insets = new Insets(3,3,3,3);
-						Data numLabel = new Data (Integer.toString(i+1),Data.Category.NUMBER, false);
+						Data numLabel = new Data (Integer.toString(i+1),Data.Category.NUMBER, false, c);
 						numLabel.setPreferredSize(new Dimension(25,25));
 						newTrack.add(numLabel,c);
 						
 						c = new GridBagConstraints();
 						c.gridx = 1;
 						c.insets = new Insets(3,3,3,3);
-						Data coverLabel = new Data(trackCover,Data.Category.COVER,false);
+						Data coverLabel = new Data(trackCover,Data.Category.COVER,false,c);
 						coverLabel.setPreferredSize(new Dimension(100,100));
 						newTrack.add(coverLabel,c);
 						
 						c = new GridBagConstraints();
 						c.gridx = 2;
 						c.insets = new Insets(3,3,3,3);
-						Data trackNameLabel = new Data(currentTrack.getJSONObject("track").getString("name"),Data.Category.TRACKNAME,false);
+						Data trackNameLabel = new Data(currentTrack.getJSONObject("track").getString("name"),Data.Category.TRACKNAME,false,c);
 						trackNameLabel.setPreferredSize(new Dimension(150,150));
 						newTrack.add(trackNameLabel,c);
 						
 						c = new GridBagConstraints();
 						c.gridx = 3;
 						c.insets = new Insets(3,3,3,3);
-						Data artistNameLabel = new Data(currentTrack.getJSONObject("track").getJSONArray("artists").getJSONObject(0).getString("name"), Data.Category.ARTISTS,false);
+						Data artistNameLabel = new Data(currentTrack.getJSONObject("track").getJSONArray("artists").getJSONObject(0).getString("name"), Data.Category.ARTISTS,false,c);
 						artistNameLabel.setPreferredSize(new Dimension(150,150));
 						newTrack.add(artistNameLabel,c);
 						
@@ -706,12 +706,14 @@ class Track extends JPanel implements MouseListener{
 	@Override
 	public void mouseEntered(MouseEvent e){
 		end = (Track) e.getComponent();
+		System.out.println("asd");
 	}
 	
 	@Override
 	public void mouseReleased(MouseEvent e){
 		moveTrack(this.getParent());
 		this.getParent().repaint();
+		this.getParent().revalidate();
 	}
 	
 	@Override
@@ -725,10 +727,11 @@ class Track extends JPanel implements MouseListener{
 	}
 	
 	public static void moveTrack(Container parent){
-		if(start!=end||end==null||start==null){
+		if(start!=end && start != null && end != null){
 			
 			int cutOff = end.num;
 					
+					//Move bottom track in place of target track
 					start.num = cutOff;
 					GridBagConstraints c = new GridBagConstraints();
 					c.gridy = cutOff;
@@ -736,6 +739,8 @@ class Track extends JPanel implements MouseListener{
 					c.weightx = 1;
 					parent.add(start,c);
 					
+					
+					//Shift all other tracks down
 					Component [] arrayOfComponents = parent.getComponents();
 					
 					for(int i = 0; i < arrayOfComponents.length; i++){
@@ -753,6 +758,7 @@ class Track extends JPanel implements MouseListener{
 						}
 					}
 					
+					//readd target track below original location
 					c = new GridBagConstraints();
 					end.num++;
 					c.gridy = end.num;
@@ -763,27 +769,35 @@ class Track extends JPanel implements MouseListener{
 					parent.repaint();
 					parent.revalidate();
 			
-			
-
-		} 
+		}
+		start = null;
+		end = null;
 	}
 	
 }
 
-class Data extends JLabel{
+class Data extends JLabel implements MouseListener{
 	boolean isHeader;
 	Category type;
+	GridBagConstraints constraints;
+	static Data start;
+	static Data end;
 	
-	public Data(String value, Category type, boolean isHeader){
+	public Data(String value, Category type, boolean isHeader, GridBagConstraints constraints){
 		super(value);
 		this.type = type;
 		this.isHeader = isHeader;
+		if(isHeader) this.addMouseListener(this);
+		this.constraints = constraints;
+		//this.addMouseListener(this);
 	}
 	
-	public Data(ImageIcon picture, Category type, boolean isHeader){
+	public Data(ImageIcon picture, Category type, boolean isHeader, GridBagConstraints constraints){
 		super(picture);
 		this.type = type;
 		this.isHeader = isHeader;
+		this.constraints = constraints;
+		//this.addMouseListener(this);
 	}
 	
 	public enum Category {
@@ -793,6 +807,75 @@ class Data extends JLabel{
 		ARTISTS,
 		GENRES,
 		DURATION,
+	}
+	
+	@Override
+	public void mouseExited(MouseEvent e){}
+	
+	@Override
+	public void mouseEntered(MouseEvent e){
+		end = (Data) e.getComponent();
+	
+	}
+	
+	@Override
+	public void mouseReleased(MouseEvent e){
+		moveColumn(this.getParent());
+		this.getParent().repaint();
+		this.getParent().revalidate();
+	}
+	
+	@Override
+	public void mousePressed(MouseEvent e){
+		start = (Data) e.getComponent();
+
+	}
+	
+	@Override
+	public void mouseClicked(MouseEvent e){
+	}
+	
+	public static void moveColumn(Container parent){
+		if(start.isHeader && end.isHeader){
+			Category startCategory = start.type;
+			Category endCategory = end.type;
+			Data startCol = null;
+			Data endCol = null;
+			
+			
+			Component [] trackRows = parent.getParent().getComponents();
+			
+			for (int i = 0; i < trackRows.length; i++){
+				JPanel currentTrack = (JPanel)trackRows[i];
+				Component [] currentTrackComponents = currentTrack.getComponents();
+				
+				//Find elements to swap in current track row
+				startCol = findData(startCategory,currentTrack);
+				endCol = findData(endCategory,currentTrack);
+				
+				//Swap
+				int endColNum = endCol.constraints.gridx;
+				endCol.constraints.gridx = startCol.constraints.gridx;
+				startCol.constraints.gridx = endColNum;
+				
+				currentTrack.add(endCol,endCol.constraints);
+				currentTrack.add(startCol,startCol.constraints);
+				
+				startCol = null;
+				endCol = null;
+			}
+		}
+	}
+	
+	public static Data findData(Category dataType, JPanel track){
+		Component [] trackComponents = track.getComponents();
+		Data toFind = null;
+		
+		for(int i = 0; i < trackComponents.length; i++){
+			if(((Data)trackComponents[i]).type==dataType) toFind = (Data) trackComponents[i];
+		}
+		
+		return (toFind);
 	}
 	
 }
