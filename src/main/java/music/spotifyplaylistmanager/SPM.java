@@ -42,6 +42,17 @@ import org.openqa.selenium.support.ui.ExpectedConditions;
 import java.time.Duration;
 import java.awt.Color;
 import javax.swing.BorderFactory;
+import java.awt.GridBagLayout;
+import java.awt.GridBagConstraints;
+import java.awt.Insets;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseEvent;
+import java.awt.Dimension;
+import java.awt.Container;
+import java.awt.Component;
+import java.awt.Point;
+import java.util.List;
+import java.util.Arrays;
 
 
 public class SPM {
@@ -55,11 +66,11 @@ public class SPM {
 		PlaylistManager man = new PlaylistManager();
 		man.token = getToken();
 		
-		JPanel playlistContainer = new JPanel();
-		playlistContainer.setLayout(new BoxLayout(playlistContainer,BoxLayout.Y_AXIS));
+		JPanel playlistContainer = new JPanel(new GridBagLayout());
 
 		JScrollPane playlistContainerScroll = new JScrollPane();
 		playlistContainerScroll.setViewportView(playlistContainer);
+		playlistContainerScroll.getVerticalScrollBar().setUnitIncrement(10);
 
 		//Menu Component //Playlist Menu
 		JMenuItem importSpotifyMenuItem = new JMenuItem("Import Playlist From Spotify");
@@ -124,7 +135,6 @@ public class SPM {
 		JSONArray currentPlaylist = man.playlist;
 		int size = currentPlaylist.length();
 		int countSize = 0;
-		
 		
 		
 		while(countSize <= size){
@@ -377,21 +387,95 @@ public class SPM {
 		SwingWorker sw = new SwingWorker(){
 			@Override
 			protected String doInBackground(){
+				
+				GridBagConstraints c = new GridBagConstraints();
+				
+				//Table Header
+				JPanel header = new JPanel(new GridBagLayout());
+				
+				c.gridx = 0;
+				c.insets = new Insets(3,3,3,3);
+				Data numHeaderLabel = new Data ("#",Data.Category.NUMBER, true);
+				numHeaderLabel.setPreferredSize(new Dimension(25,25));
+				header.add(numHeaderLabel,c);
+				
+				c = new GridBagConstraints();
+				c.gridx = 1;
+				c.insets = new Insets(3,3,3,3);
+				Data coverHeaderLabel = new Data("Cover",Data.Category.COVER,true);
+				coverHeaderLabel.setPreferredSize(new Dimension(100,100));
+				header.add(coverHeaderLabel,c);
+				
+				c = new GridBagConstraints();
+				c.gridx = 2;
+				c.insets = new Insets(3,3,3,3);
+				Data trackNameHeaderLabel = new Data("Song",Data.Category.TRACKNAME,true);
+				trackNameHeaderLabel.setPreferredSize(new Dimension(150,150));
+				header.add(trackNameHeaderLabel,c);
+				
+				c = new GridBagConstraints();
+				c.gridx = 3;
+				c.insets = new Insets(3,3,3,3);
+				Data artistNameHeaderLabel = new Data("Artists", Data.Category.ARTISTS,true);
+				artistNameHeaderLabel.setPreferredSize(new Dimension(150,150));
+				header.add(artistNameHeaderLabel,c);
+				
+				c = new GridBagConstraints();
+				c.gridy = 0;
+				c.weightx = 1;
+				playlistContainer.add(header,c);
+				
+				
+				
+				//Table Body
 				for(int i = 0; i<man.playlist.length(); i++) {
-
+					JSONObject currentTrack = man.playlist.getJSONObject(i);
+					Track newTrack = new Track(i+1);
 
 					try{
-						URL trackCoverUrl = new URL(man.playlist.getJSONObject(i).getJSONObject("track").getJSONObject("album").getJSONArray("images").getJSONObject(0).getString("url"));
+						URL trackCoverUrl = new URL(currentTrack.getJSONObject("track").getJSONObject("album").getJSONArray("images").getJSONObject(0).getString("url"));
 						Image trackCoverImage = ImageIO.read(trackCoverUrl);
 						
 						ImageIcon trackCover = new ImageIcon(trackCoverImage.getScaledInstance(100,100,Image.SCALE_DEFAULT));
-
-						JPanel trackBar = new JPanel();
-						trackBar.add(new JLabel(Integer.toString(i+1)));
-						trackBar.add(new JLabel(trackCover));
+						
+						c = new GridBagConstraints();
+						c.gridx = 0;
+						c.insets = new Insets(3,3,3,3);
+						Data numLabel = new Data (Integer.toString(i+1),Data.Category.NUMBER, false);
+						numLabel.setPreferredSize(new Dimension(25,25));
+						newTrack.add(numLabel,c);
+						
+						c = new GridBagConstraints();
+						c.gridx = 1;
+						c.insets = new Insets(3,3,3,3);
+						Data coverLabel = new Data(trackCover,Data.Category.COVER,false);
+						coverLabel.setPreferredSize(new Dimension(100,100));
+						newTrack.add(coverLabel,c);
+						
+						c = new GridBagConstraints();
+						c.gridx = 2;
+						c.insets = new Insets(3,3,3,3);
+						Data trackNameLabel = new Data(currentTrack.getJSONObject("track").getString("name"),Data.Category.TRACKNAME,false);
+						trackNameLabel.setPreferredSize(new Dimension(150,150));
+						newTrack.add(trackNameLabel,c);
+						
+						c = new GridBagConstraints();
+						c.gridx = 3;
+						c.insets = new Insets(3,3,3,3);
+						Data artistNameLabel = new Data(currentTrack.getJSONObject("track").getJSONArray("artists").getJSONObject(0).getString("name"), Data.Category.ARTISTS,false);
+						artistNameLabel.setPreferredSize(new Dimension(150,150));
+						newTrack.add(artistNameLabel,c);
+						
+						newTrack.setBorder(BorderFactory.createLineBorder(Color.black));
+						
+						c = new GridBagConstraints();
+						c.gridy = i+1;
+						c.weightx = 1;
+						playlistContainer.add(newTrack,c);
 					
-						playlistContainer.add(trackBar);
 					} catch(Exception e){}
+
+					
 
 					proBar.setValue(i);
 					proBar.repaint();
@@ -506,6 +590,24 @@ public class SPM {
 
 		return (allTracks);
 	}
+	
+/* 	public static void generateCustomPlaylistJSON(JSONArray playlist){
+		
+		JSONArray customArray = new JSONArray();
+		
+		for(int i = 0; i < playlist.length(); i++){
+			JSONObject newJSON = new JSONObject();
+			
+			
+			newJSON.put();
+			
+			
+			
+			
+			customArray.put(i,);
+		}
+		
+	} */
 
 
 	public static String getToken(){
@@ -585,4 +687,112 @@ class PlaylistManager{
 	String authorizedToken = null;
 	String token = null;
 	String userID = null;
+}
+
+class Track extends JPanel implements MouseListener{
+	int num = -1;
+	static Track start;
+	static Track end;
+	
+	public Track(int number){
+		num = number;
+		this.setLayout(new GridBagLayout());
+		this.addMouseListener(this);
+	}
+	
+	@Override
+	public void mouseExited(MouseEvent e){}
+	
+	@Override
+	public void mouseEntered(MouseEvent e){
+		end = (Track) e.getComponent();
+	}
+	
+	@Override
+	public void mouseReleased(MouseEvent e){
+		moveTrack(this.getParent());
+		this.getParent().repaint();
+	}
+	
+	@Override
+	public void mousePressed(MouseEvent e){
+		start = (Track) e.getComponent();
+
+	}
+	
+	@Override
+	public void mouseClicked(MouseEvent e){
+	}
+	
+	public static void moveTrack(Container parent){
+		if(start!=end||end==null||start==null){
+			
+			int cutOff = end.num;
+					
+					start.num = cutOff;
+					GridBagConstraints c = new GridBagConstraints();
+					c.gridy = cutOff;
+					c.gridx = 0;
+					c.weightx = 1;
+					parent.add(start,c);
+					
+					Component [] arrayOfComponents = parent.getComponents();
+					
+					for(int i = 0; i < arrayOfComponents.length; i++){
+						if(arrayOfComponents[i] instanceof Track){
+							Track currentComponent = (Track) arrayOfComponents[i];
+					
+							if(currentComponent.num > cutOff) {
+								currentComponent.num++;
+								c = new GridBagConstraints();
+								c.gridy = currentComponent.num;
+								c.gridx = 0;
+								c.weightx = 1;
+								parent.add(currentComponent,c);
+							}
+						}
+					}
+					
+					c = new GridBagConstraints();
+					end.num++;
+					c.gridy = end.num;
+					c.weightx = 1;
+					c.gridx = 0;
+					parent.add(end,c);
+					
+					parent.repaint();
+					parent.revalidate();
+			
+			
+
+		} 
+	}
+	
+}
+
+class Data extends JLabel{
+	boolean isHeader;
+	Category type;
+	
+	public Data(String value, Category type, boolean isHeader){
+		super(value);
+		this.type = type;
+		this.isHeader = isHeader;
+	}
+	
+	public Data(ImageIcon picture, Category type, boolean isHeader){
+		super(picture);
+		this.type = type;
+		this.isHeader = isHeader;
+	}
+	
+	public enum Category {
+		NUMBER, 
+		COVER,
+		TRACKNAME, 
+		ARTISTS,
+		GENRES,
+		DURATION,
+	}
+	
 }
