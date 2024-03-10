@@ -59,7 +59,18 @@ import javax.swing.JCheckBox;
 
 public class SPM {
 	public static void main(String[] args) throws Exception{
+		//demo id=6J5jTtAegcRQP7q6ix0A8K
+		//Personal id=6zbr9annOmLVvxWOfM3SBM
 		app();
+		
+		//String token = getAuthorizedToken("AQCP1hdwnIL2DLWl0UauqWRDkSkhjRqxY5CoNPd3qKao0tsfuToQaoq1MinrfU-G8GFaeE-W2LcOdawrdEpxhqWyAVKxD2XMDsLNM9XtrfjWs0nNAM7lbBknxMJbjNLRehw");
+		
+		
+		
+		/* WebDriver driver = new ChromeDriver();
+		driver.get("https://www.youtube.com/embed/hLQl3WQQoQ0?si=-MES4EFlRoznsFYl"); */
+		
+		
 	}
 	
 	public static void app (){
@@ -387,12 +398,12 @@ public class SPM {
 				
 				GridBagConstraints c = new GridBagConstraints();
 				
-				//Table Header
+				//Table Header - Visible Labels
 				Track header = new Track(0, man.playlist,true);
 				
 				c.gridx = 0;
 				c.insets = new Insets(0,3,0,3);
-				Data numHeaderLabel = new Data ("#",Data.Category.NUMBER, true,c, header);
+				Data numHeaderLabel = new Data ("#", true,c, header);
 				numHeaderLabel.setPreferredSize(new Dimension(25,25));
 				header.num = numHeaderLabel;
 				header.add(numHeaderLabel,c);
@@ -400,7 +411,7 @@ public class SPM {
 				c = new GridBagConstraints();
 				c.gridx = 1;
 				c.insets = new Insets(0,3,0,3);
-				Data coverHeaderLabel = new Data("Cover",Data.Category.COVER,true,c, header);
+				Data coverHeaderLabel = new Data("Cover",true,c, header);
 				coverHeaderLabel.setPreferredSize(new Dimension(100,100));
 				header.trackCover = coverHeaderLabel;
 				header.add(coverHeaderLabel,c);
@@ -408,7 +419,7 @@ public class SPM {
 				c = new GridBagConstraints();
 				c.gridx = 2;
 				c.insets = new Insets(0,3,0,3);
-				Data trackNameHeaderLabel = new Data("Track",Data.Category.trackName,true,c, header);
+				Data trackNameHeaderLabel = new Data("Track",true,c, header);
 				trackNameHeaderLabel.setPreferredSize(new Dimension(150,150));
 				header.trackName = trackNameHeaderLabel;
 				header.add(trackNameHeaderLabel,c);
@@ -416,14 +427,39 @@ public class SPM {
 				c = new GridBagConstraints();
 				c.gridx = 3;
 				c.insets = new Insets(0,3,0,3);
-				Data artistNameHeaderLabel = new Data("Artists", Data.Category.ARTISTS,true,c, header);
+				Data artistNameHeaderLabel = new Data("Artists",true,c, header);
 				artistNameHeaderLabel.setPreferredSize(new Dimension(150,150));
 				header.artistName = artistNameHeaderLabel;
 				header.add(artistNameHeaderLabel,c);
 				
+				
+				//Table Header - Invisible Labels
+				c = new GridBagConstraints();
+				c.gridx = 4;
+				c.insets = new Insets(0,3,0,3);
+				Data releasedDateHeaderLabel = new Data("Released Date",true,c, header);
+				releasedDateHeaderLabel.setPreferredSize(new Dimension(150,150));
+				header.releasedDate = releasedDateHeaderLabel;
+				
+				c = new GridBagConstraints();
+				c.gridx = 5;
+				c.insets = new Insets(0,3,0,3);
+				Data durationHeaderLabel = new Data("Duration",true,c, header);
+				durationHeaderLabel.setPreferredSize(new Dimension(150,150));
+				header.duration = durationHeaderLabel;
+				
+				c = new GridBagConstraints();
+				c.gridx = 6;
+				c.insets = new Insets(0,3,0,3);
+				Data popularityLabelHeaderLabel = new Data("Popularity",true,c, header);
+				popularityLabelHeaderLabel.setPreferredSize(new Dimension(150,150));
+				header.popularity = popularityLabelHeaderLabel;
+				
+				
 				c = new GridBagConstraints();
 				c.gridy = 0;
 				c.weightx = 1;
+				header.constraints = c;
 				man.playlist.add(header,c);
 				
 				
@@ -442,41 +478,68 @@ public class SPM {
 						c = new GridBagConstraints();
 						c.gridx = 0;
 						c.insets = new Insets(3,3,3,3);
-						Data numLabel = new Data (Integer.toString(i+1),Data.Category.NUMBER, false, c, newTrack);
+						Data numLabel = new Data (Integer.toString(i+1), false, c, newTrack);
 						numLabel.setPreferredSize(new Dimension(25,25));
 						newTrack.num = numLabel;
 						
 						c = new GridBagConstraints();
 						c.gridx = 1;
 						c.insets = new Insets(3,3,3,3);
-						Data coverLabel = new Data(trackCover,Data.Category.COVER,false,c, newTrack);
+						Data coverLabel = new Data(trackCover, false, c, newTrack);
 						coverLabel.setPreferredSize(new Dimension(100,100));
 						newTrack.trackCover = coverLabel;
 						
 						c = new GridBagConstraints();
 						c.gridx = 2;
 						c.insets = new Insets(3,3,3,3);
-						Data trackNameLabel = new Data(currentTrack.getString("trackName"),Data.Category.trackName,false,c, newTrack);
+						Data trackNameLabel = new Data(currentTrack.getString("trackName"),false,c, newTrack);
 						trackNameLabel.setPreferredSize(new Dimension(150,150));
 						newTrack.trackName = trackNameLabel;
 						
 						c = new GridBagConstraints();
 						c.gridx = 3;
 						c.insets = new Insets(3,3,3,3);
-						Data artistNameLabel = new Data(currentTrack.getString("trackArtist"), Data.Category.ARTISTS,false,c, newTrack);
+						Data artistNameLabel = new Data(currentTrack.getString("trackArtist"),false,c, newTrack);
 						artistNameLabel.setPreferredSize(new Dimension(150,150));
 						newTrack.artistName = artistNameLabel;
+						
+						c = new GridBagConstraints();
+						c.gridx = 4;
+						c.insets = new Insets(3,3,3,3);
+						Data releasedDateLabel = new Data(currentTrack.getString("releasedDate"),false,c, newTrack);
+						releasedDateLabel.setPreferredSize(new Dimension(150,150));
+						newTrack.releasedDate = releasedDateLabel;
+						
+						c = new GridBagConstraints();
+						c.gridx = 5;
+						c.insets = new Insets(3,3,3,3);
+						Data durationLabel = new Data(currentTrack.getString("duration"),false,c, newTrack);
+						durationLabel.setPreferredSize(new Dimension(150,150));
+						newTrack.duration = durationLabel;
+						
+						c = new GridBagConstraints();
+						c.gridx = 6;
+						c.insets = new Insets(3,3,3,3);
+						Data popularityLabel = new Data(currentTrack.getString("popularity"),false,c, newTrack);
+						popularityLabel.setPreferredSize(new Dimension(150,150));
+						newTrack.popularity = popularityLabel;
+						
+						
 						
 						newTrack.setBorder(BorderFactory.createLineBorder(Color.black));
 						
 						c = new GridBagConstraints();
 						c.gridy = i+1;
+						c.gridx = 0;
 						c.weightx = 1;
+						newTrack.constraints = c;
 						man.playlist.add(newTrack,c);
 						
 						newTrack.initializeTrack();
 					
-					} catch(Exception e){}
+					} catch(Exception e){
+						System.out.println(e.getMessage());
+					}
 
 
 					proBar.setValue(i);
@@ -548,6 +611,7 @@ public class SPM {
 				
 			HttpResponse<String> responseBody = HttpClient.newHttpClient().send(generalRequest,HttpResponse.BodyHandlers.ofString());
 			response = responseBody.body();
+			
 		} catch (Exception e){}
 
 		return (response);
@@ -566,6 +630,9 @@ public class SPM {
 				
 			HttpResponse<String> responseBody = HttpClient.newHttpClient().send(generalRequest,HttpResponse.BodyHandlers.ofString());
 			response = responseBody.body();
+			
+			
+			
 		} catch (Exception e){}
 
 		return (response);
@@ -597,20 +664,39 @@ public class SPM {
 		
 		JSONArray spotifyPlaylist = getPlaylistTracks(playlistID);
 		JSONArray customArray = new JSONArray();
+		int counter = 0;
 		
 		for(int i = 0; i < spotifyPlaylist.length(); i++){
-			JSONObject newJSON = new JSONObject();
 			
-			String trackCoverURL = spotifyPlaylist.getJSONObject(i).getJSONObject("track").getJSONObject("album").getJSONArray("images").getJSONObject(0).getString("url");
-			newJSON.put("trackCoverURL", trackCoverURL);
-			
-			String trackName = spotifyPlaylist.getJSONObject(i).getJSONObject("track").getString("name");
-			newJSON.put("trackName",trackName);
-			
-			String trackArtist = spotifyPlaylist.getJSONObject(i).getJSONObject("track").getJSONArray("artists").getJSONObject(0).getString("name");
-			newJSON.put("trackArtist", trackArtist);
-			
-			customArray.put(i,newJSON);
+			//resolve voided tracks
+			if (!(spotifyPlaylist.getJSONObject(i).getJSONObject("track").getJSONObject("album").getString("release_date").equals("0000"))){
+				JSONObject newJSON = new JSONObject();
+				String trackCoverURL = spotifyPlaylist.getJSONObject(i).getJSONObject("track").getJSONObject("album").getJSONArray("images").getJSONObject(0).getString("url");
+				newJSON.put("trackCoverURL", trackCoverURL);
+				
+				String trackName = spotifyPlaylist.getJSONObject(i).getJSONObject("track").getString("name");
+				newJSON.put("trackName",trackName);
+				
+				String trackArtist = spotifyPlaylist.getJSONObject(i).getJSONObject("track").getJSONArray("artists").getJSONObject(0).getString("name");
+				newJSON.put("trackArtist", trackArtist);
+				
+				String releasedDate = spotifyPlaylist.getJSONObject(i).getJSONObject("track").getJSONObject("album").getString("release_date");
+				newJSON.put("releasedDate",releasedDate);
+				
+				int duration = spotifyPlaylist.getJSONObject(i).getJSONObject("track").getInt("duration_ms");
+				int min = (duration/1000/60);
+				int sec = (duration/1000%60);
+				String durationString = String.format("%02d:%02d",min,sec);
+				newJSON.put("duration",durationString);
+				
+				int popularity = spotifyPlaylist.getJSONObject(i).getJSONObject("track").getInt("popularity");
+				newJSON.put("popularity",String.valueOf(popularity));
+				
+				String artistID = spotifyPlaylist.getJSONObject(i).getJSONObject("track").getJSONArray("artists").getJSONObject(0).getString("id");
+				newJSON.put("artistID",artistID);
+				
+				customArray.put(counter++,newJSON);
+			}
 		}
 		
 		return(customArray);
@@ -634,7 +720,6 @@ public class SPM {
 			
 			response = HttpClient.newHttpClient().send(tokenRequest,HttpResponse.BodyHandlers.ofString());
 		} catch (Exception e){}
-		
 		
 		JSONObject tokenJSON = new JSONObject(response.body());
 		
@@ -668,11 +753,41 @@ public class SPM {
 		
 		String token = new JSONObject(response.body()).getString("access_token");
 		
+		System.out.println(new JSONObject(response.body()).getString("refresh_token"));
+		
+		return (token);
+	}
+	
+	public static String getAuthorizedToken(String refreshToken){
+		String clientID = "c592a3c9e9b34be59a79bfe0b98aa6a1";
+		String clientSecret = "ff0366ee8e63480f88add8208435ad74";
+		String tempLogin = clientID + ":" + clientSecret;
+		String login = Base64.getEncoder().encodeToString(tempLogin.getBytes());
+		HttpResponse<String> response = null;
+		
+		byte [] requestBody = new String("grant_type=refresh_token&refresh_token=" + refreshToken).getBytes();
+		
+		try{
+			HttpRequest tokenRequest = HttpRequest.newBuilder()
+				.uri(new URI("https://accounts.spotify.com/api/token"))
+				.headers("Authorization", "Basic " + login, "Content-Type", "application/x-www-form-urlencoded")
+				.POST(HttpRequest.BodyPublishers.ofByteArray(requestBody))
+				.build();
+				
+			HttpClient tokenClient = HttpClient.newBuilder()
+				.followRedirects(HttpClient.Redirect.ALWAYS)
+				.build();
+			
+			response = tokenClient.send(tokenRequest,HttpResponse.BodyHandlers.ofString());
+		} catch (Exception e){}
+		
+		String token = new JSONObject(response.body()).getString("access_token");
+		
 		return (token);
 	}
 	
 	public static String getAuthorizationCode(){
-		String site = "https://accounts.spotify.com/authorize?client_id=c592a3c9e9b34be59a79bfe0b98aa6a1&redirect_uri=http://localhost/&response_type=code&scope=user-read-email,user-read-private,playlist-modify-public,playlist-modify-private,playlist-read-private";
+		String site = "https://accounts.spotify.com/authorize?client_id=c592a3c9e9b34be59a79bfe0b98aa6a1&redirect_uri=http://localhost/&response_type=code&scope=user-read-email,user-read-private,playlist-modify-public,playlist-modify-private,playlist-read-private,user-read-playback-state,user-modify-playback-state,user-read-currently-playing,";
 		
 		WebDriver driver = new ChromeDriver();
 		driver.get(site);
@@ -686,7 +801,6 @@ public class SPM {
 		
 		return(authorizationCode);
 	}
-
 }
 
 
@@ -696,355 +810,4 @@ class PlaylistManager{
 	String authorizedToken = null;
 	String token = null;
 	String userID = null;
-}
-
-
-class Playlist extends JPanel {
-	boolean numVisible = true;
-	boolean coverVisible = true;
-	boolean trackNameVisible = true;
-	boolean artistNameVisible = true;
-	
-	
-	public Playlist(){
-		this.setLayout(new GridBagLayout());
-	}
-	
-	public void addNumColumn(){
-		Component [] children = this.getComponents();
-		for(Component com: children) {
-			Track currentTrack = (Track) com;
-			currentTrack.add(currentTrack.num);
-		} 
-		this.repaint();
-		this.revalidate();
-	}
-	
-	public void removeNumColumn(){
-		Component [] children = this.getComponents();
-		for(Component com: children) {
-			Track currentTrack = (Track) com;
-			currentTrack.remove(currentTrack.num);
-		} 
-		this.repaint();
-		this.revalidate();
-	}
-	
-	public void addCoverColumn(){
-		Component [] children = this.getComponents();
-		for(Component com: children) {
-			Track currentTrack = (Track) com;
-			currentTrack.add(currentTrack.trackCover);
-		} 
-		this.repaint();
-		this.revalidate();
-	}
-	
-	public void removeCoverColumn(){
-		Component [] children = this.getComponents();
-		for(Component com: children) {
-			Track currentTrack = (Track) com;
-			currentTrack.remove(currentTrack.trackCover);
-		} 
-		this.repaint();
-		this.revalidate();
-	}
-	
-	public void addTrackNameColumn(){
-		Component [] children = this.getComponents();
-		for(Component com: children) {
-			Track currentTrack = (Track) com;
-			currentTrack.add(currentTrack.trackName);
-		} 
-		this.repaint();
-		this.revalidate();
-	}
-	
-	public void removeTrackNameColumn(){
-		Component [] children = this.getComponents();
-		for(Component com: children) {
-			Track currentTrack = (Track) com;
-			currentTrack.remove(currentTrack.trackName);
-		} 
-		this.repaint();
-		this.revalidate();
-	}
-	
-	public void addArtistNameColumn(){
-		Component [] children = this.getComponents();
-		for(Component com: children) {
-			Track currentTrack = (Track) com;
-			currentTrack.add(currentTrack.artistName);
-		} 
-		this.repaint();
-		this.revalidate();
-	}
-	
-	public void removeArtistNameColumn(){
-		Component [] children = this.getComponents();
-		for(Component com: children) {
-			Track currentTrack = (Track) com;
-			currentTrack.remove(currentTrack.artistName);
-		} 
-		this.repaint();
-		this.revalidate();
-	}
-}
-
-class Track extends JPanel implements MouseListener{
-	Playlist playlist;
-	boolean isHeader;
-	Data num;
-	Data trackCover;
-	Data trackName;
-	Data artistName;
-	static Track start;
-	static Track end;
-	
-	public Track(int number, Playlist playlist, boolean isHeader){
-		this.setLayout(new GridBagLayout());
-		this.isHeader = isHeader;
-		this.playlist = playlist;
-		this.addMouseListener(this);
-	}
-	
-	@Override
-	public void mouseExited(MouseEvent e){}
-	
-	@Override
-	public void mouseEntered(MouseEvent e){
-		end = (Track) e.getComponent();
-	}
-	
-	@Override
-	public void mouseReleased(MouseEvent e){
-		//moveTrack(this.getParent());
-		this.getParent().repaint();
-		this.getParent().revalidate();
-	}
-	
-	@Override
-	public void mousePressed(MouseEvent e){
-		start = (Track) e.getComponent();
-	}
-	
-	@Override
-	public void mouseClicked(MouseEvent e){
-	}
-	
-	public void initializeTrack(){
-		this.add(this.num,this.num.constraints);
-		this.add(this.trackCover,this.trackCover.constraints);
-		this.add(this.trackName,this.trackName.constraints);
-		this.add(this.artistName,this.artistName.constraints);
-	}
-	
-	/* public static void moveTrack(Container parent){
-		if(start!=end && start != null && end != null){
-			
-			int cutOff = end.num;
-					
-					//Move bottom track in place of target track
-					start.num = cutOff;
-					GridBagConstraints c = new GridBagConstraints();
-					c.gridy = cutOff;
-					c.gridx = 0;
-					c.weightx = 1;
-					parent.add(start,c);
-					
-					
-					//Shift all other tracks down
-					Component [] arrayOfComponents = parent.getComponents();
-					
-					for(int i = 0; i < arrayOfComponents.length; i++){
-						if(arrayOfComponents[i] instanceof Track){
-							Track currentComponent = (Track) arrayOfComponents[i];
-					
-							if(currentComponent.num > cutOff) {
-								currentComponent.num++;
-								c = new GridBagConstraints();
-								c.gridy = currentComponent.num;
-								c.gridx = 0;
-								c.weightx = 1;
-								parent.add(currentComponent,c);
-							}
-						}
-					}
-					
-					//readd target track below original location
-					c = new GridBagConstraints();
-					end.num++;
-					c.gridy = end.num;
-					c.weightx = 1;
-					c.gridx = 0;
-					parent.add(end,c);
-					
-					parent.repaint();
-					parent.revalidate();
-			
-		}
-		start = null;
-		end = null;
-	} */
-	
-}
-
-class Data extends JLabel implements MouseListener{
-	Track track;
-	boolean isHeader;
-	Category type;
-	GridBagConstraints constraints;
-	static Data start;
-	static Data end;
-	
-	public Data(String value, Category type, boolean isHeader, GridBagConstraints constraints, Track track){
-		super(value);
-		this.type = type;
-		this.track = track;
-		this.isHeader = isHeader;
-		if(isHeader) this.addMouseListener(this);
-		this.constraints = constraints;
-	}
-	
-	public Data(ImageIcon picture, Category type, boolean isHeader, GridBagConstraints constraints, Track track){
-		super(picture);
-		this.type = type;
-		this.track = track;
-		this.isHeader = isHeader;
-		this.constraints = constraints;
-	}
-	
-	public enum Category {
-		NUMBER, 
-		COVER,
-		trackName, 
-		ARTISTS,
-		GENRES,
-		DURATION,
-	}
-	
-	@Override
-	public void mouseExited(MouseEvent e){}
-	
-	@Override
-	public void mouseEntered(MouseEvent e){
-		end = (Data) e.getComponent();
-	
-	}
-	
-	@Override
-	public void mouseReleased(MouseEvent e){
-		int press = e.getButton();
-		
-		if(press==MouseEvent.BUTTON3){
-			this.showColumnSelectionMenu(e.getX(),e.getY());
-		} else {
-			moveColumn(this.getParent());
-		}
-		
-		
-		this.getParent().repaint();
-		this.getParent().revalidate();
-	}
-	
-	@Override
-	public void mousePressed(MouseEvent e){
-		start = (Data) e.getComponent();
-
-	}
-	
-	@Override
-	public void mouseClicked(MouseEvent e){
-	}
-	
-	public static void moveColumn(Container parent){
-		if(start.isHeader && end.isHeader){
-			Category startCategory = start.type;
-			Category endCategory = end.type;
-			Data startCol = null;
-			Data endCol = null;
-			
-			
-			Component [] trackRows = parent.getParent().getComponents();
-			
-			for (int i = 0; i < trackRows.length; i++){
-				JPanel currentTrack = (JPanel)trackRows[i];
-				Component [] currentTrackComponents = currentTrack.getComponents();
-				
-				//Find elements to swap in current track row
-				startCol = findData(startCategory,currentTrack);
-				endCol = findData(endCategory,currentTrack);
-				
-				//Swap
-				int endColNum = endCol.constraints.gridx;
-				endCol.constraints.gridx = startCol.constraints.gridx;
-				startCol.constraints.gridx = endColNum;
-				
-				currentTrack.add(endCol,endCol.constraints);
-				currentTrack.add(startCol,startCol.constraints);
-				
-				startCol = null;
-				endCol = null;
-			}
-		}
-	}
-	
-	public static Data findData(Category dataType, JPanel track){
-		Component [] trackComponents = track.getComponents();
-		Data toFind = null;
-		
-		for(int i = 0; i < trackComponents.length; i++){
-			if(((Data)trackComponents[i]).type==dataType) toFind = (Data) trackComponents[i];
-		}
-		
-		return (toFind);
-	}
-	
-	public void showColumnSelectionMenu(int xPos, int yPos){
-		Playlist playlist = this.track.playlist;
-		
-		JPopupMenu pop = new JPopupMenu("ColumnSelection");
-		
-		
-		JCheckBox num = new JCheckBox("Number",playlist.numVisible);
-		num.addActionListener(e -> {
-			playlist.numVisible = !playlist.numVisible;
-			if(playlist.numVisible) playlist.addNumColumn();
-			else playlist.removeNumColumn();
-		});
-		pop.add(num);
-		
-		
-		JCheckBox cover = new JCheckBox("Cover",playlist.coverVisible);
-		cover.addActionListener(e -> {
-			playlist.coverVisible = !playlist.coverVisible;
-			if(playlist.coverVisible) playlist.addCoverColumn();
-			else playlist.removeCoverColumn();
-		});
-		pop.add(cover);
-		
-		
-		JCheckBox name = new JCheckBox("Name",playlist.trackNameVisible);
-		name.addActionListener(e -> {
-			playlist.trackNameVisible = !playlist.trackNameVisible;
-			if(playlist.trackNameVisible) playlist.addTrackNameColumn();
-			else playlist.removeTrackNameColumn();
-		});
-		pop.add(name);
-		
-		
-		JCheckBox artist = new JCheckBox("Artists",playlist.artistNameVisible);
-		artist.addActionListener(e -> {
-			playlist.artistNameVisible = !playlist.artistNameVisible;
-			if(playlist.artistNameVisible) playlist.addArtistNameColumn();
-			else playlist.removeArtistNameColumn();
-		});
-		pop.add(artist);
-		
-		
-		pop.repaint();
-		pop.revalidate();
-		pop.show(this,xPos,yPos);
-	}
-	
 }
