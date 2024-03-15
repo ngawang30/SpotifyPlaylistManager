@@ -136,9 +136,7 @@ class Data extends JLabel implements MouseListener{
 				
 				for(int j = i+1; j < column.length; j++){
 					Data current = column[j];
-					System.out.println(current.getText() + " " + column[maxIndex].getText());
 					if(current.getText().compareToIgnoreCase(column[maxIndex].getText()) > 0) {
-						System.out.println(" TRUE");
 						maxIndex = j;
 					}
 				}
@@ -161,9 +159,7 @@ class Data extends JLabel implements MouseListener{
 				
 				for(int j = i+1; j < column.length; j++){
 					Data current = column[j];
-					System.out.println(current.getText() + " " + column[maxIndex].getText());
 					if(current.getText().compareToIgnoreCase(column[maxIndex].getText()) < 0) {
-						System.out.println(" TRUE");
 						maxIndex = j;
 					}
 				}
@@ -298,6 +294,57 @@ class Data extends JLabel implements MouseListener{
 			playlist.togglePopularityColumn(playlist.popularityVisible);
 		});
 		pop.add(popularity);
+		
+		JCheckBox explicit = new JCheckBox("Explicit",playlist.explicitVisible);
+		explicit.addActionListener(e -> {
+			playlist.explicitVisible = !playlist.explicitVisible;
+			playlist.toggleExplicitColumn(playlist.explicitVisible);
+		});
+		pop.add(explicit);
+		
+		JCheckBox artistType = new JCheckBox("Artist Type",playlist.artistTypeVisible);
+		artistType.addActionListener(e -> {
+			playlist.artistTypeVisible = !playlist.artistTypeVisible;
+			playlist.toggleArtistTypeColumn(playlist.artistTypeVisible);
+		});
+		pop.add(artistType);
+		
+		JCheckBox artistCountry = new JCheckBox("Artist Country",playlist.artistCountryVisible);
+		artistCountry.addActionListener(e -> {
+			playlist.artistCountryVisible = !playlist.artistCountryVisible;
+			playlist.toggleArtistCountryColumn(playlist.artistCountryVisible);
+		});
+		pop.add(artistCountry);
+		
+		JCheckBox artistGender = new JCheckBox("Artist Gender",playlist.artistGenderVisible);
+		artistGender.addActionListener(e -> {
+			playlist.artistGenderVisible = !playlist.artistGenderVisible;
+			playlist.toggleArtistGenderColumn(playlist.artistGenderVisible);
+		});
+		pop.add(artistGender);
+		
+		JCheckBox isDead = new JCheckBox("Deceased",playlist.isDeadVisible);
+		isDead.addActionListener(e -> {
+			playlist.isDeadVisible = !playlist.isDeadVisible;
+			playlist.toggleIsDeadColumn(playlist.isDeadVisible);
+		});
+		pop.add(isDead);
+		
+		JCheckBox subArea = new JCheckBox("SubArea",playlist.subAreaVisible);
+		subArea.addActionListener(e -> {
+			playlist.subAreaVisible = !playlist.subAreaVisible;
+			playlist.toggleSubAreaColumn(playlist.subAreaVisible);
+		});
+		pop.add(subArea);
+		
+		JCheckBox language = new JCheckBox("Language",playlist.languageVisible);
+		language.addActionListener(e -> {
+			playlist.languageVisible = !playlist.languageVisible;
+			playlist.toggleLanguageColumn(playlist.languageVisible);
+		});
+		pop.add(language);
+		
+		
 		
 		
 		pop.repaint();

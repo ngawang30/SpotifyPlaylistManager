@@ -59,13 +59,19 @@ import javax.swing.JCheckBox;
 
 
 class Playlist extends JPanel {
-	Playlist backUp = null;
 	static Data sortingData = null;
 	boolean numVisible = true;
+	boolean artistTypeVisible = false;
+	boolean artistCountryVisible = false;
+	boolean artistGenderVisible = false;
+	boolean isDeadVisible = false;
+	boolean subAreaVisible = false;
+	boolean languageVisible = false;
 	boolean coverVisible = true;
 	boolean trackNameVisible = true;
 	boolean artistNameVisible = true;
 	boolean releasedDateVisible = false;
+	boolean explicitVisible = false;
 	boolean durationVisible = false;
 	boolean popularityVisible = false;
 	
@@ -146,6 +152,83 @@ class Playlist extends JPanel {
 			Track currentTrack = (Track) com;
 			if(visible) currentTrack.add(currentTrack.popularity,currentTrack.popularity.constraints);
 			else currentTrack.remove(currentTrack.popularity);
+		} 
+		this.repaint();
+		this.revalidate();
+	}
+	
+	public void toggleExplicitColumn(boolean visible){
+		Component [] children = this.getComponents();
+		for(Component com: children) {
+			Track currentTrack = (Track) com;
+			if(visible) currentTrack.add(currentTrack.explicit,currentTrack.explicit.constraints);
+			else currentTrack.remove(currentTrack.explicit);
+		} 
+		this.repaint();
+		this.revalidate();
+	}
+	
+	public void toggleArtistTypeColumn(boolean visible){
+		Component [] children = this.getComponents();
+		for(Component com: children) {
+			Track currentTrack = (Track) com;
+			if(visible) currentTrack.add(currentTrack.artistType,currentTrack.artistType.constraints);
+			else currentTrack.remove(currentTrack.artistType);
+		} 
+		this.repaint();
+		this.revalidate();
+	}
+	
+	public void toggleArtistCountryColumn(boolean visible){
+		Component [] children = this.getComponents();
+		for(Component com: children) {
+			Track currentTrack = (Track) com;
+			if(visible) currentTrack.add(currentTrack.artistCountry,currentTrack.artistCountry.constraints);
+			else currentTrack.remove(currentTrack.artistCountry);
+		} 
+		this.repaint();
+		this.revalidate();
+	}
+	
+	public void toggleArtistGenderColumn(boolean visible){
+		Component [] children = this.getComponents();
+		for(Component com: children) {
+			Track currentTrack = (Track) com;
+			if(visible) currentTrack.add(currentTrack.artistGender,currentTrack.artistGender.constraints);
+			else currentTrack.remove(currentTrack.artistGender);
+		} 
+		this.repaint();
+		this.revalidate();
+	}
+	
+	public void toggleIsDeadColumn(boolean visible){
+		Component [] children = this.getComponents();
+		for(Component com: children) {
+			Track currentTrack = (Track) com;
+			if(visible) currentTrack.add(currentTrack.isDead,currentTrack.isDead.constraints);
+			else currentTrack.remove(currentTrack.isDead);
+		} 
+		this.repaint();
+		this.revalidate();
+	}
+	
+	public void toggleSubAreaColumn(boolean visible){
+		Component [] children = this.getComponents();
+		for(Component com: children) {
+			Track currentTrack = (Track) com;
+			if(visible) currentTrack.add(currentTrack.subArea,currentTrack.subArea.constraints);
+			else currentTrack.remove(currentTrack.subArea);
+		} 
+		this.repaint();
+		this.revalidate();
+	}
+	
+	public void toggleLanguageColumn(boolean visible){
+		Component [] children = this.getComponents();
+		for(Component com: children) {
+			Track currentTrack = (Track) com;
+			if(visible) currentTrack.add(currentTrack.language,currentTrack.language.constraints);
+			else currentTrack.remove(currentTrack.language);
 		} 
 		this.repaint();
 		this.revalidate();
