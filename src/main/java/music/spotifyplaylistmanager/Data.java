@@ -55,26 +55,30 @@ import java.util.List;
 import java.util.Arrays;
 import javax.swing.JPopupMenu;
 import javax.swing.JCheckBox;
+import java.util.Comparator;
 
 
 class Data extends JLabel implements MouseListener{
 	Track track;
 	int sortStage = 0;
 	boolean isHeader;
+	boolean isVisible;
 	GridBagConstraints constraints;
 	static Data start;
 	static Data end;
 	
-	public Data(String value, boolean isHeader, GridBagConstraints constraints, Track track){
+	public Data(String value, boolean isHeader, boolean visible, GridBagConstraints constraints, Track track){
 		super(value);
+		this.isVisible = visible;
 		this.track = track;
 		this.isHeader = isHeader;
 		if(isHeader) this.addMouseListener(this);
 		this.constraints = constraints;
 	}
 	
-	public Data(ImageIcon picture, boolean isHeader, GridBagConstraints constraints, Track track){
+	public Data(ImageIcon picture, boolean isHeader, boolean visible, GridBagConstraints constraints, Track track){
 		super(picture);
+		this.isVisible = visible;
 		this.track = track;
 		this.isHeader = isHeader;
 		this.constraints = constraints;
@@ -86,7 +90,6 @@ class Data extends JLabel implements MouseListener{
 	@Override
 	public void mouseEntered(MouseEvent e){
 		end = (Data) e.getComponent();
-	
 	}
 	
 	@Override
@@ -98,7 +101,6 @@ class Data extends JLabel implements MouseListener{
 		} else {
 			moveColumn(this.track.playlist);
 		}
-		
 		
 		this.getParent().repaint();
 		this.getParent().revalidate();
@@ -112,39 +114,67 @@ class Data extends JLabel implements MouseListener{
 	
 	@Override
 	public void mouseClicked(MouseEvent e){
-		this.sort();
+		if(this.getText().equals("#")){
+			this.sortPrimary();
+		} else {
+			this.sort();
+		}
 		this.track.playlist.repaint();
 		this.track.playlist.revalidate();
 	}
 	
-	public void sort(){
-		int colNum = this.constraints.gridx;
+	//Only for "#" Column Limited to Asc
+	public void sortPrimary(){
 		Data [] column = this.generateColumnArray();
 		Playlist playlist = this.track.playlist;
-		Component [] tracks = this.track.playlist.getComponents();
+		
+		if(playlist.sortingData!=null){
+			playlist.sortingData.sortStage = 0;
+			playlist.sortingData = null;
+		}
+		
+		Arrays.sort(column, new Comparator<Data>(){
+			@Override
+			public int compare(Data a, Data b){
+				int aInt = Integer.parseInt(a.getText());
+				int bInt = Integer.parseInt(b.getText());
+				
+				return(Integer.compare(aInt,bInt));
+			}
+		});
+		
+		for(int i = 0; i < column.length; i ++){
+			Track currentTrack = column[i].track;	
+			currentTrack.constraints.gridy = i+1;
+			playlist.add(currentTrack,currentTrack.constraints);
+		}
+	}
+	
+	public void sort(){
+		Data [] column = this.generateColumnArray();
+		Playlist playlist = this.track.playlist;
+		String increase = "\u2191";
+		String decrease = "\u2193";
+		Comparator stringComp = new Comparator<Data>(){
+			public int compare(Data a, Data b){
+					String aString = a.getText();
+					String bString = b.getText();
+					
+					return(aString.compareTo(bString));
+				}
+		};
 		
 		if(playlist.sortingData != this){
 			if(playlist.sortingData!=null){
+				playlist.sortingData.setText(playlist.sortingData.getText().replace(increase,""));
+				playlist.sortingData.setText(playlist.sortingData.getText().replace(decrease,""));
 				playlist.sortingData.sortStage = 0;
 				playlist.sortingData = null;
 			}
 			
 			playlist.sortingData = this;
 			
-			for(int i = 0; i < column.length; i++){
-				int maxIndex = i;
-				
-				for(int j = i+1; j < column.length; j++){
-					Data current = column[j];
-					if(current.getText().compareToIgnoreCase(column[maxIndex].getText()) > 0) {
-						maxIndex = j;
-					}
-				}
-				
-				Data temp = column[i];
-				column [i] = column[maxIndex];
-				column[maxIndex] = temp;
-			}
+			Arrays.sort(column, stringComp);
 			
 			for(int i = 0; i < column.length; i ++){
 				Track currentTrack = column[i].track;	
@@ -152,22 +182,10 @@ class Data extends JLabel implements MouseListener{
 				playlist.add(currentTrack,currentTrack.constraints);
 			}
 			
+			this.setText(this.getText() + increase);
 			this.sortStage = 1;
 		} else if(this.sortStage==1) {
-			for(int i = 0; i < column.length; i++){
-				int maxIndex = i;
-				
-				for(int j = i+1; j < column.length; j++){
-					Data current = column[j];
-					if(current.getText().compareToIgnoreCase(column[maxIndex].getText()) < 0) {
-						maxIndex = j;
-					}
-				}
-				
-				Data temp = column[i];
-				column [i] = column[maxIndex];
-				column[maxIndex] = temp;
-			}
+			Arrays.sort(column, stringComp.reversed());
 			
 			for(int i = 0; i < column.length; i ++){
 				Track currentTrack = column[i].track;	
@@ -175,8 +193,13 @@ class Data extends JLabel implements MouseListener{
 				playlist.add(currentTrack,currentTrack.constraints);
 			}
 			
+			this.setText(this.getText().replace(increase,decrease));
+			this.sortStage = 2;
+		} else if(this.sortStage == 2){
 			this.sortStage = 0;
+			this.setText(this.getText().replace(decrease,""));
 			playlist.sortingData = null;
+			this.track.num.sortPrimary();
 		}
 	}
 	
@@ -191,7 +214,7 @@ class Data extends JLabel implements MouseListener{
 		
 		for(int i = 0; i < tracks.length; i++){
 			Track currentTrack = (Track) tracks[i];
-			if(!currentTrack.isHeader) column[counter++] = findData(pos, (Track)tracks[i]);
+			if(!currentTrack.isHeader) column[counter++] = currentTrack.findData(pos);
 		}
 		
 		return (column);
@@ -206,8 +229,8 @@ class Data extends JLabel implements MouseListener{
 			
 			for(Component com: tracks){
 				Track currentTrack = (Track) com;
-				Data tempOne = findData(startX, currentTrack);
-				Data tempTwo = findData(endX, currentTrack);
+				Data tempOne = currentTrack.findData(startX);
+				Data tempTwo = currentTrack.findData(endX);
 				swapDataX(currentTrack, tempOne,tempTwo);
 			}
 		}
@@ -226,130 +249,68 @@ class Data extends JLabel implements MouseListener{
 		track.add(two,two.constraints);
 	}
 	
-	public static Data findData(int gridX, JPanel track){
-		Component [] trackComponents = track.getComponents();
-		Data toFind = null;
-		
-		for(int i = 0; i < trackComponents.length; i++){
-			Data currentData = (Data) trackComponents[i];
-			if(currentData.constraints.gridx == gridX) return (currentData);
-		}
-		
-		return (toFind);
-	}
+	
 	
 	public void showColumnSelectionMenu(int xPos, int yPos){
-		Playlist playlist = this.track.playlist;
+		Track track = this.track;
 		
 		JPopupMenu pop = new JPopupMenu("ColumnSelection");
 		
-		JCheckBox num = new JCheckBox("Number",playlist.numVisible);
-		num.addActionListener(e -> {
-			playlist.numVisible = !playlist.numVisible;
-			playlist.toggleNumColumn(playlist.numVisible);
-		});
+		ColumnCheckBox num = new ColumnCheckBox("Number",track.num);
 		pop.add(num);
 		
-		
-		JCheckBox cover = new JCheckBox("Cover",playlist.coverVisible);
-		cover.addActionListener(e -> {
-			playlist.coverVisible = !playlist.coverVisible;
-			playlist.toggleCoverColumn(playlist.coverVisible);
-		});
+		ColumnCheckBox cover = new ColumnCheckBox("Cover",track.cover);
 		pop.add(cover);
 		
-		
-		JCheckBox name = new JCheckBox("Name",playlist.trackNameVisible);
-		name.addActionListener(e -> {
-			playlist.trackNameVisible = !playlist.trackNameVisible;
-			playlist.toggleTrackNameColumn(playlist.trackNameVisible);
-		});
+		ColumnCheckBox name = new ColumnCheckBox("Name", track.name);
 		pop.add(name);
 		
-		
-		JCheckBox artist = new JCheckBox("Artists",playlist.artistNameVisible);
-		artist.addActionListener(e -> {
-			playlist.artistNameVisible = !playlist.artistNameVisible;
-			playlist.toggleArtistNameColumn(playlist.artistNameVisible);
-		});
+		ColumnCheckBox artist = new ColumnCheckBox("Artists",track.artist);
 		pop.add(artist);
 		
-		JCheckBox releasedDate = new JCheckBox("Released Date",playlist.releasedDateVisible);
-		releasedDate.addActionListener(e -> {
-			playlist.releasedDateVisible = !playlist.releasedDateVisible;
-			playlist.toggleReleasedDateColumn(playlist.releasedDateVisible);
-		});
+		ColumnCheckBox releasedDate = new ColumnCheckBox("Released Date",track.releasedDate);
 		pop.add(releasedDate);
 		
-		JCheckBox duration = new JCheckBox("Duration",playlist.durationVisible);
-		duration.addActionListener(e -> {
-			playlist.durationVisible = !playlist.durationVisible;
-			playlist.toggleDurationColumn(playlist.durationVisible);
-		});
+		ColumnCheckBox duration = new ColumnCheckBox("Duration",track.duration);
 		pop.add(duration);
 		
-		JCheckBox popularity = new JCheckBox("Popularity",playlist.popularityVisible);
-		popularity.addActionListener(e -> {
-			playlist.popularityVisible = !playlist.popularityVisible;
-			playlist.togglePopularityColumn(playlist.popularityVisible);
-		});
+		ColumnCheckBox popularity = new ColumnCheckBox("Popularity",track.popularity);
 		pop.add(popularity);
 		
-		JCheckBox explicit = new JCheckBox("Explicit",playlist.explicitVisible);
-		explicit.addActionListener(e -> {
-			playlist.explicitVisible = !playlist.explicitVisible;
-			playlist.toggleExplicitColumn(playlist.explicitVisible);
-		});
+		ColumnCheckBox explicit = new ColumnCheckBox("Explicit",track.explicit);
 		pop.add(explicit);
 		
-		JCheckBox artistType = new JCheckBox("Artist Type",playlist.artistTypeVisible);
-		artistType.addActionListener(e -> {
-			playlist.artistTypeVisible = !playlist.artistTypeVisible;
-			playlist.toggleArtistTypeColumn(playlist.artistTypeVisible);
-		});
+		ColumnCheckBox artistType = new ColumnCheckBox("Artist Type",track.artistType);
 		pop.add(artistType);
 		
-		JCheckBox artistCountry = new JCheckBox("Artist Country",playlist.artistCountryVisible);
-		artistCountry.addActionListener(e -> {
-			playlist.artistCountryVisible = !playlist.artistCountryVisible;
-			playlist.toggleArtistCountryColumn(playlist.artistCountryVisible);
-		});
+		ColumnCheckBox artistCountry = new ColumnCheckBox("Artist Country",track.artistCountry);
 		pop.add(artistCountry);
 		
-		JCheckBox artistGender = new JCheckBox("Artist Gender",playlist.artistGenderVisible);
-		artistGender.addActionListener(e -> {
-			playlist.artistGenderVisible = !playlist.artistGenderVisible;
-			playlist.toggleArtistGenderColumn(playlist.artistGenderVisible);
-		});
+		ColumnCheckBox artistGender = new ColumnCheckBox("Artist Gender",track.artistGender);
 		pop.add(artistGender);
 		
-		JCheckBox isDead = new JCheckBox("Deceased",playlist.isDeadVisible);
-		isDead.addActionListener(e -> {
-			playlist.isDeadVisible = !playlist.isDeadVisible;
-			playlist.toggleIsDeadColumn(playlist.isDeadVisible);
-		});
+		ColumnCheckBox isDead = new ColumnCheckBox("Deceased",track.isDead);
 		pop.add(isDead);
 		
-		JCheckBox subArea = new JCheckBox("SubArea",playlist.subAreaVisible);
-		subArea.addActionListener(e -> {
-			playlist.subAreaVisible = !playlist.subAreaVisible;
-			playlist.toggleSubAreaColumn(playlist.subAreaVisible);
-		});
+		ColumnCheckBox subArea = new ColumnCheckBox("SubArea",track.subArea);
 		pop.add(subArea);
 		
-		JCheckBox language = new JCheckBox("Language",playlist.languageVisible);
-		language.addActionListener(e -> {
-			playlist.languageVisible = !playlist.languageVisible;
-			playlist.toggleLanguageColumn(playlist.languageVisible);
-		});
+		ColumnCheckBox language = new ColumnCheckBox("Language",track.language);
 		pop.add(language);
-		
-		
-		
 		
 		pop.repaint();
 		pop.revalidate();
 		pop.show(this,xPos,yPos);
 	}
 	
+}
+
+class ColumnCheckBox extends JCheckBox{
+	public ColumnCheckBox(String name, Data columnData){
+		super(name,columnData.isVisible);
+		this.addActionListener(e -> {
+			columnData.isVisible = !columnData.isVisible;
+			columnData.track.playlist.toggleColumn(columnData);
+		});
+	}
 }

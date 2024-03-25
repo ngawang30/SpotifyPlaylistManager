@@ -57,179 +57,40 @@ import javax.swing.JPopupMenu;
 import javax.swing.JCheckBox;
 
 
-
 class Playlist extends JPanel {
 	static Data sortingData = null;
-	boolean numVisible = true;
-	boolean artistTypeVisible = false;
-	boolean artistCountryVisible = false;
-	boolean artistGenderVisible = false;
-	boolean isDeadVisible = false;
-	boolean subAreaVisible = false;
-	boolean languageVisible = false;
-	boolean coverVisible = true;
-	boolean trackNameVisible = true;
-	boolean artistNameVisible = true;
-	boolean releasedDateVisible = false;
-	boolean explicitVisible = false;
-	boolean durationVisible = false;
-	boolean popularityVisible = false;
+	PlaylistManager man;
 	
-	
-	public Playlist(){
+	public Playlist(PlaylistManager man){
 		this.setLayout(new GridBagLayout());
+		this.man = man;
 	}
 	
-	public void toggleNumColumn(boolean visible){
-		Component [] children = this.getComponents();
-		for(Component com: children) {
+	public Track[] getTracks(){
+		Component [] components = this.getComponents();
+		Track [] tracks = new Track[components.length-1];  
+		int counter = 0;
+		
+		for(Component com:components){
 			Track currentTrack = (Track) com;
-			if(visible) currentTrack.add(currentTrack.num,currentTrack.num.constraints);
-			else currentTrack.remove(currentTrack.num);
-		} 
-		this.repaint();
-		this.revalidate();
+			if(!currentTrack.isHeader) tracks[counter++] = currentTrack;
+		}
+
+		return(tracks);
 	}
 	
-	public void toggleCoverColumn(boolean visible){
-		Component [] children = this.getComponents();
-		for(Component com: children) {
-			Track currentTrack = (Track) com;
-			if(visible) currentTrack.add(currentTrack.trackCover,currentTrack.trackCover.constraints);
-			else currentTrack.remove(currentTrack.trackCover);;
-		} 
-		this.repaint();
-		this.revalidate();
-	}
 	
-	public void toggleTrackNameColumn(boolean visible){
-		Component [] children = this.getComponents();
-		for(Component com: children) {
+	public void toggleColumn(Data columnData){
+		int target = columnData.constraints.gridx;
+		Component [] tracks = columnData.track.playlist.getComponents();
+			
+		for(Component com: tracks){
 			Track currentTrack = (Track) com;
-			if(visible) currentTrack.add(currentTrack.trackName,currentTrack.trackName.constraints);
-			else currentTrack.remove(currentTrack.trackName);
-		} 
-		this.repaint();
-		this.revalidate();
-	}
-	
-	public void toggleArtistNameColumn(boolean visible){
-		Component [] children = this.getComponents();
-		for(Component com: children) {
-			Track currentTrack = (Track) com;
-			if(visible) currentTrack.add(currentTrack.artistName,currentTrack.artistName.constraints);
-			else currentTrack.remove(currentTrack.artistName);
-		} 
-		this.repaint();
-		this.revalidate();
-	}
-	
-	public void toggleReleasedDateColumn(boolean visible){
-		Component [] children = this.getComponents();
-		for(Component com: children) {
-			Track currentTrack = (Track) com;
-			if(visible) currentTrack.add(currentTrack.releasedDate,currentTrack.releasedDate.constraints);
-			else currentTrack.remove(currentTrack.releasedDate);
-		} 
-		this.repaint();
-		this.revalidate();
-	}
-	
-	public void toggleDurationColumn(boolean visible){
-		Component [] children = this.getComponents();
-		for(Component com: children) {
-			Track currentTrack = (Track) com;
-			if(visible) currentTrack.add(currentTrack.duration,currentTrack.duration.constraints);
-			else currentTrack.remove(currentTrack.duration);
-		} 
-		this.repaint();
-		this.revalidate();
-	}
-	
-	public void togglePopularityColumn(boolean visible){
-		Component [] children = this.getComponents();
-		for(Component com: children) {
-			Track currentTrack = (Track) com;
-			if(visible) currentTrack.add(currentTrack.popularity,currentTrack.popularity.constraints);
-			else currentTrack.remove(currentTrack.popularity);
-		} 
-		this.repaint();
-		this.revalidate();
-	}
-	
-	public void toggleExplicitColumn(boolean visible){
-		Component [] children = this.getComponents();
-		for(Component com: children) {
-			Track currentTrack = (Track) com;
-			if(visible) currentTrack.add(currentTrack.explicit,currentTrack.explicit.constraints);
-			else currentTrack.remove(currentTrack.explicit);
-		} 
-		this.repaint();
-		this.revalidate();
-	}
-	
-	public void toggleArtistTypeColumn(boolean visible){
-		Component [] children = this.getComponents();
-		for(Component com: children) {
-			Track currentTrack = (Track) com;
-			if(visible) currentTrack.add(currentTrack.artistType,currentTrack.artistType.constraints);
-			else currentTrack.remove(currentTrack.artistType);
-		} 
-		this.repaint();
-		this.revalidate();
-	}
-	
-	public void toggleArtistCountryColumn(boolean visible){
-		Component [] children = this.getComponents();
-		for(Component com: children) {
-			Track currentTrack = (Track) com;
-			if(visible) currentTrack.add(currentTrack.artistCountry,currentTrack.artistCountry.constraints);
-			else currentTrack.remove(currentTrack.artistCountry);
-		} 
-		this.repaint();
-		this.revalidate();
-	}
-	
-	public void toggleArtistGenderColumn(boolean visible){
-		Component [] children = this.getComponents();
-		for(Component com: children) {
-			Track currentTrack = (Track) com;
-			if(visible) currentTrack.add(currentTrack.artistGender,currentTrack.artistGender.constraints);
-			else currentTrack.remove(currentTrack.artistGender);
-		} 
-		this.repaint();
-		this.revalidate();
-	}
-	
-	public void toggleIsDeadColumn(boolean visible){
-		Component [] children = this.getComponents();
-		for(Component com: children) {
-			Track currentTrack = (Track) com;
-			if(visible) currentTrack.add(currentTrack.isDead,currentTrack.isDead.constraints);
-			else currentTrack.remove(currentTrack.isDead);
-		} 
-		this.repaint();
-		this.revalidate();
-	}
-	
-	public void toggleSubAreaColumn(boolean visible){
-		Component [] children = this.getComponents();
-		for(Component com: children) {
-			Track currentTrack = (Track) com;
-			if(visible) currentTrack.add(currentTrack.subArea,currentTrack.subArea.constraints);
-			else currentTrack.remove(currentTrack.subArea);
-		} 
-		this.repaint();
-		this.revalidate();
-	}
-	
-	public void toggleLanguageColumn(boolean visible){
-		Component [] children = this.getComponents();
-		for(Component com: children) {
-			Track currentTrack = (Track) com;
-			if(visible) currentTrack.add(currentTrack.language,currentTrack.language.constraints);
-			else currentTrack.remove(currentTrack.language);
-		} 
+			
+			if(columnData.isVisible) currentTrack.add(currentTrack.findData(target),currentTrack.findData(target).constraints);
+			else currentTrack.remove(currentTrack.findData(target));
+		}
+		
 		this.repaint();
 		this.revalidate();
 	}

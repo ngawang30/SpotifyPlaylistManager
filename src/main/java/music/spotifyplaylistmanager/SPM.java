@@ -66,6 +66,9 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 import java.io.BufferedReader;
 import java.net.URLEncoder;
+import javax.swing.event.DocumentListener;
+import javax.swing.event.DocumentEvent;
+import java.lang.Double;
 
 
 public class SPM {
@@ -73,12 +76,14 @@ public class SPM {
 		app();
 	}
 	
+	
+	
 	public static void app (){
 		//Playlist Body Component
 		PlaylistManager man = new PlaylistManager();
 		man.token = PlaylistManager.getToken();
 		
-		man.playlist = new Playlist();
+		man.playlist = new Playlist(man);
 		
 		JPanel playlistContainer = new JPanel(new GridBagLayout());
 
@@ -102,6 +107,8 @@ public class SPM {
 		JMenuItem exportSpotifyMenuItem = new JMenuItem("Export Playlist to Spotify");
 		//exportSpotifyMenuItem.addActionListener(e -> uploadPlaylist(man));
 		
+		
+		
 		JMenu playlistMenu = new JMenu("Playlist");
 		playlistMenu.add(importSpotifyMenuItem);
 		playlistMenu.add(importJSONMenuItem);
@@ -118,23 +125,29 @@ public class SPM {
 		JMenuItem status = new JMenuItem("Login Status");
 		status.addActionListener(e -> man.showStatus());
 		
-		
 		JMenu profile = new JMenu("Profile");
 		profile.add(info);
 		profile.add(playlists);
 		profile.add(status);
+		
+		JMenuItem openRecommendation = new JMenuItem("Open");
+		openRecommendation.addActionListener(e -> Recommender.getRecommender(man));
+		
+		JMenu recommendationMenu = new JMenu("Recommendation");
+		recommendationMenu.add(openRecommendation);
 		
 		
 		//MenuBar Composition
 		JMenuBar menuBar = new JMenuBar();
 		menuBar.add(playlistMenu);
 		menuBar.add(profile);
+		menuBar.add(recommendationMenu);
 		
 
 		//Application Component
 		JFrame frame = new JFrame("Spotify Playlist Manager");
 
-		frame.getContentPane().add(playlistContainerScroll,BorderLayout.CENTER);
+		frame.add(playlistContainerScroll,BorderLayout.CENTER);
 
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.setSize(500,500);

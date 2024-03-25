@@ -61,15 +61,20 @@ import org.jsoup.nodes.Element;
 import javax.sound.sampled.Clip;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
+import java.io.IOException;
 import java.util.Timer;
 import java.util.TimerTask;
+import javax.swing.JOptionPane;
+import java.util.ArrayList;
+import java.awt.datatransfer.StringSelection;
+import java.awt.Toolkit;
 
 
 class Track extends JPanel implements MouseListener{
 	Playlist playlist;
-	boolean isHeader;
+	JSONObject trackJSON;
 	Data num;
-	Data trackCover;
+	Data cover;
 	Data explicit;
 	Data language;
 	Data artistType;
@@ -81,16 +86,17 @@ class Track extends JPanel implements MouseListener{
 	Data duration;
 	Data popularity;
 	GridBagConstraints constraints;
-	Data trackName;
-	Data artistName;
-	static Track start;
-	static Track end;
+	Data name;
+	Data artist;
+	static Track from;
+	static Track to;
+	boolean isHeader;
 	
 	static Clip clip;
 	static int clicks;
-	static File file;
 	
-	public Track(int number, Playlist playlist, boolean isHeader){
+	public Track(int number, Playlist playlist, boolean isHeader, JSONObject trackJSON){
+		this.trackJSON = trackJSON;
 		this.setLayout(new GridBagLayout());
 		this.isHeader = isHeader;
 		this.playlist = playlist;
@@ -102,21 +108,30 @@ class Track extends JPanel implements MouseListener{
 	
 	@Override
 	public void mouseEntered(MouseEvent e){
-		end = (Track) e.getComponent();
+		to = (Track) e.getComponent();
 	}
 	
 	@Override
 	public void mouseReleased(MouseEvent e){
-		moveTrack(start, end);
-		start = null;
-		end = null;
-		this.playlist.repaint();
-		this.playlist.revalidate();
+		int press = e.getButton();
+		
+		if(press==MouseEvent.BUTTON3){
+			showTrackMenu(e.getX(),e.getY());
+			
+		} else {
+			if(this.playlist.sortingData==null){
+				moveTrack(from, to);
+				from = null;
+				to = null;
+				this.playlist.repaint();
+				this.playlist.revalidate();
+			}
+		}
 	}
 	
 	@Override
 	public void mousePressed(MouseEvent e){
-		start = (Track) e.getComponent();
+		from = (Track) e.getComponent();
 	}
 	
 	@Override
@@ -136,15 +151,39 @@ class Track extends JPanel implements MouseListener{
 		if(clicks==2)this.playTrack();
 	}
 	
+	public void showTrackMenu(int xPos, int yPos){
+		
+		JPopupMenu pop = new JPopupMenu("ColumnSelection");
+		
+		JMenuItem copyID = new JMenuItem("Copy Track ID");
+		copyID.addActionListener(e -> {
+			
+			StringSelection string = new StringSelection(this.trackJSON.getString("id"));
+			Toolkit.getDefaultToolkit().getSystemClipboard().setContents(string,null);
+		});
+		pop.add(copyID);
+		
+		
+		pop.repaint();
+		pop.revalidate();
+		pop.show(this,xPos,yPos);
+	}
+	
+	public void setY(int y){
+		this.constraints.gridy = y;
+	}
+	
 	public String getSongURL(){
 		String songURL = null;
+		
 		try{
-			String query = (this.trackName.getText() + " " + this.artistName.getText() + " lyrics").replaceAll("\\s+","%20");
-			
+			String query = (this.name.getText() + " " + this.artist.getText() + " lyrics").replaceAll("\\s+","%20");
 			Document doc = Jsoup.connect("https://www.google.com/search?tbm=vid&q=" + query).get();
 			Element videoElement = doc.selectFirst("[data-surl]");
 			songURL = videoElement.attr("data-surl");
-		} catch (Exception e){}
+		} catch (Exception e){
+			JOptionPane.showMessageDialog(null, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+		}
 		
 		return(songURL);
 	}
@@ -156,7 +195,6 @@ class Track extends JPanel implements MouseListener{
 			clip = null;
 		} else {
 			String song = this.getSongURL();
-			
 			
 			SwingWorker sw = new SwingWorker(){
 				@Override
@@ -177,7 +215,7 @@ class Track extends JPanel implements MouseListener{
 				@Override
 				protected void done(){
 					try{
-						file = new File("temp.wav");
+						File file = new File("temp.wav");
 						AudioInputStream ais = AudioSystem.getAudioInputStream(file);
 						clip = AudioSystem.getClip(); 
 						clip.open(ais);				
@@ -188,57 +226,61 @@ class Track extends JPanel implements MouseListener{
 			};
 			
 			sw.execute();
-			
+		}
+	}
+	
+	public Data[] getRow(){
+		Data [] row = new Data[14];
+		
+		row[0] = this.num;
+		row[1] = this.cover;
+		row[2] = this.explicit;
+		row[3] = this.language;
+		row[4] = this.artistType;
+		row[5] = this.artistCountry;
+		row[6] = this.subArea;
+		row[7] = this.artistGender;
+		row[8] = this.isDead;
+		row[9] = this.releasedDate;
+		row[10] = this.duration;
+		row[11] = this.popularity;
+		row[12] = this.name;
+		row[13] = this.artist;
+		
+		return(row);
+	}
+	
+	public Data findData(int gridX){
+		Data [] data = this.getRow();
+		Data toFind = null;
+		
+		for(int i = 0; i < data.length; i++){
+			if(data[i].constraints.gridx == gridX) return (data[i]);
 		}
 		
+		return (toFind);
 	}
 	
 	public void initializeTrack(){
 		this.add(this.num,this.num.constraints);
-		this.add(this.trackCover,this.trackCover.constraints);
-		this.add(this.trackName,this.trackName.constraints);
-		this.add(this.artistName,this.artistName.constraints);
+		this.add(this.cover,this.cover.constraints);
+		this.add(this.name,this.name.constraints);
+		this.add(this.artist,this.artist.constraints);
 	}
 	
-	public static void moveTrack(Track start, Track end){
-		if(start!=end && start != null && end != null){
-			Playlist playlist = start.playlist;
+	public static void moveTrack(Track from, Track to){
+		if(from!=to && from != null && to != null){
+			Playlist playlist = from.playlist;
+			ArrayList<Track> tracks = new ArrayList(Arrays.asList(from.playlist.getTracks()));
 			
+			tracks.remove(from);
+			tracks.add(tracks.indexOf(to),from);
 			
-			int startPos = start.constraints.gridy;
-			int top = end.constraints.gridy>start.constraints.gridy?start.constraints.gridy:end.constraints.gridy;
-			int bottom = end.constraints.gridy<start.constraints.gridy?start.constraints.gridy:end.constraints.gridy;
-			boolean topToBottom = end.constraints.gridy > start.constraints.gridy;
-					
-					//Move bottom track in place of target track
-					start.constraints.gridy = end.constraints.gridy;
-					start.num.setText(String.valueOf(start.constraints.gridy));
-					playlist.add(start,start.constraints);
-					
-					//Shift all other tracks down
-					Component [] Tracks = playlist.getComponents();
-					
-					for(int i = 0; i < Tracks.length; i++){
-						Track currentTrack = (Track) Tracks[i];
-						
-						if(!currentTrack.isHeader && currentTrack.constraints.gridy > top && currentTrack.constraints.gridy < bottom){
-							if(!topToBottom) {
-								currentTrack.constraints.gridy++;
-								currentTrack.num.setText(String.valueOf(currentTrack.constraints.gridy));
-								playlist.add(currentTrack,currentTrack.constraints);
-							} else {
-								currentTrack.constraints.gridy--;
-								currentTrack.num.setText(String.valueOf(currentTrack.constraints.gridy));
-								playlist.add(currentTrack,currentTrack.constraints);
-							}
-						}
-					}
-					
-					//readd target track below original location
-					if(!topToBottom) end.constraints.gridy++;
-					else end.constraints.gridy--;
-					end.num.setText(String.valueOf(end.constraints.gridy));
-					playlist.add(end,end.constraints);
+			for(int i = 0; i < tracks.size(); i++){
+				Track currentTrack = tracks.get(i);
+				currentTrack.constraints.gridy = i+1;
+				playlist.add(currentTrack,currentTrack.constraints);
+			}
 		}
 	}
 	
