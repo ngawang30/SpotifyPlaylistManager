@@ -4,11 +4,11 @@ A Java swing application to load, view, and manage your spotify playlists with i
 
 # Features
 -  Retrieval of rich information about the tracks in your playlists
--  Import and Export Playlists to and from the application and Spotify Account
--  Recommendation System (Using Spotify's API's Recommendation endpoint)
+-  Import and export playlists to and from the application and Spotify Account
+-  Recommendation system (Using Spotify's API's recommendation endpoint)
 -  Playback (*must add yt-dlp to your System PATH variable)
 
 # Implemented Libraries
-- (JSoup)[https://jsoup.org/]
-- (Selenium WebDriver)[https://www.selenium.dev/documentation/webdriver/]
-- (yt-dlp)[https://github.com/yt-dlp/yt-dlp]
+- [JSoup](https://jsoup.org/])
+- [Selenium WebDriver](https://www.selenium.dev/documentation/webdriver/)
+- [yt-dlp](https://github.com/yt-dlp/yt-dlp)
