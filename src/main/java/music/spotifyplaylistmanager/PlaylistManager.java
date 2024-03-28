@@ -67,9 +67,18 @@ import org.jsoup.nodes.Element;
 import java.io.BufferedReader;
 import java.net.URLEncoder;
 import org.openqa.selenium.NoSuchWindowException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import javax.swing.JSplitPane;
+import javax.swing.JList;
+import javax.swing.event.ListSelectionListener;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.JTextArea;
 
 class PlaylistManager{
 	JScrollPane playlistScrollContainer = null;
+	JFrame mainFrame;
+	MusicPlayer mp;
 	JSONArray playlistJSON = null;
 	Playlist playlist = null;
 	String authorizedToken = null;
@@ -77,12 +86,56 @@ class PlaylistManager{
 	String userID = null;
 
 	public void moveJSONSong(int from, int to){
-		List playlistJSONList = this.playlistJSON.toList();
 		
-		playlistJSONList.add(to,playlistJSONList.get(from));
-		playlistJSONList.remove(from);
+		System.out.println("From " + from + "to " + to);
 		
-		this.playlistJSON = new JSONArray(playlistJSONList);
+		ArrayList<JSONObject> JSONTracks = new ArrayList();
+		Iterator it = this.playlistJSON.iterator();
+		
+		while(it.hasNext()){
+			JSONTracks.add(new JSONObject(it.next().toString()));
+		}
+		
+		JSONObject removed = JSONTracks.get(from);
+		JSONTracks.remove(from);
+		JSONTracks.add(to,removed);
+		
+		this.playlistJSON = new JSONArray(JSONTracks);
+	}
+	
+	public void getHelp(){
+		JFrame frame = new JFrame("Help");
+		frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+		frame.setSize(500,500);
+		frame.setLocationRelativeTo(null);
+		frame.setVisible(true);
+		
+		JTextArea helpInstructions = new JTextArea();
+		helpInstructions.setLineWrap(true);
+		helpInstructions.setWrapStyleWord(true);
+		String movingTracks = "If tracks are not moving, be sure that no column is being ordered as track movement is disabled when sorted by any column.  To disable, click on sorted column until no sort symbol is shown or click on the number column to reset order.";
+		String playingMusic = "If you have trouble playing music, make sure you have yt-dlp downloaded and have added it to your system path as this application uses it via commandline.";
+		String others = "If you encounter any other problems, please contact me at ngawang30@gmail.com with issues.";
+		
+		JList helpOptions = new JList(new String[]{"Moving Tracks","Playing Music","Others"});
+		helpOptions.addListSelectionListener(e -> {
+			if(helpOptions.getSelectedValue().equals("Moving Tracks")){
+				helpInstructions.setText(movingTracks);
+			}
+			
+			if(helpOptions.getSelectedValue().equals("Playing Music")){
+				helpInstructions.setText(playingMusic);
+			}
+			
+			if(helpOptions.getSelectedValue().equals("Others")){
+				helpInstructions.setText(others);
+			}
+		});
+		
+		JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,helpOptions,helpInstructions);
+		split.setResizeWeight(.2);
+		
+		frame.add(split,BorderLayout.CENTER);
 	}
 	
 	public void showStatus(){
@@ -345,7 +398,7 @@ class PlaylistManager{
 					GridBagConstraints c = new GridBagConstraints();
 					
 					//Table Header - Visible Labels
-					Track header = new Track(0, man.playlist,true,null);
+					Track header = new Track(man.playlist,true,null);
 					
 					c.gridx = 0;
 					c.insets = new Insets(0,3,0,3);
@@ -460,7 +513,7 @@ class PlaylistManager{
 					//Table Body
 					for(int i = 0; i<man.playlistJSON.length(); i++) {
 						JSONObject currentTrack = man.playlistJSON.getJSONObject(i);
-						Track newTrack = new Track(i+1,man.playlist,false,currentTrack);
+						Track newTrack = new Track(man.playlist,false,currentTrack);
 
 						try{
 							URL trackCoverUrl = new URL(currentTrack.getString("trackCoverURL"));
@@ -807,6 +860,11 @@ class PlaylistManager{
 			
 			String releasedDate = currentTrack.getJSONObject("album").getString("release_date");
 			newJSON.put("releasedDate",releasedDate);
+			
+			int durationInMs = currentTrack.getInt("duration_ms");
+			int durationInSeconds = (durationInMs/1000);
+			String durationInSecondsString = String.valueOf(durationInSeconds);
+			newJSON.put("durationInSeconds",durationInSecondsString);
 			
 			int duration = currentTrack.getInt("duration_ms");
 			int min = (duration/1000/60);

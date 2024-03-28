@@ -79,7 +79,6 @@ class Playlist extends JPanel {
 		return(tracks);
 	}
 	
-	
 	public void toggleColumn(Data columnData){
 		int target = columnData.constraints.gridx;
 		Component [] tracks = columnData.track.playlist.getComponents();

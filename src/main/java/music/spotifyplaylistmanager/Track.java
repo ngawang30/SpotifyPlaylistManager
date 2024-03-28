@@ -68,9 +68,9 @@ import javax.swing.JOptionPane;
 import java.util.ArrayList;
 import java.awt.datatransfer.StringSelection;
 import java.awt.Toolkit;
+import java.awt.event.MouseAdapter;
 
-
-class Track extends JPanel implements MouseListener{
+class Track extends JPanel{
 	Playlist playlist;
 	JSONObject trackJSON;
 	Data num;
@@ -90,143 +90,143 @@ class Track extends JPanel implements MouseListener{
 	Data artist;
 	static Track from;
 	static Track to;
-	boolean isHeader;
-	
+	boolean isHeader = false;
 	static Clip clip;
 	static int clicks;
+
+	//Constructor for Recommendations
+	public Track(PlaylistManager man, JSONObject trackJSON){
+		this.trackJSON = trackJSON;
+		this.setLayout(new GridBagLayout());
+		
+		this.addMouseListener(new MouseAdapter(){
+			@Override
+			public void mouseClicked(MouseEvent e){
+				int press = e.getButton();
+				
+				if(press==MouseEvent.BUTTON3){
+					showTrackMenu(e.getX(),e.getY());
+				} else {
+					TimerTask clickTimer = new TimerTask(){
+						@Override
+						public void run(){
+							clicks = 0;
+						}
+					};
+					
+					Timer clickInterval = new Timer();
+					clickInterval.schedule(clickTimer, 250);
+					
+					clicks++;
+					
+					if(clicks==2){ 
+						Track.this.playlist.man.mp.setQueue(Track.this);
+						man.mp.playTrack(Track.this);
+					}
+				}
+			}
+		});
+	}
 	
-	public Track(int number, Playlist playlist, boolean isHeader, JSONObject trackJSON){
+	//Constructor for Playlist
+	public Track(Playlist playlist, boolean isHeader, JSONObject trackJSON){
 		this.trackJSON = trackJSON;
 		this.setLayout(new GridBagLayout());
 		this.isHeader = isHeader;
 		this.playlist = playlist;
-		this.addMouseListener(this);
-	}
-	
-	@Override
-	public void mouseExited(MouseEvent e){}
-	
-	@Override
-	public void mouseEntered(MouseEvent e){
-		to = (Track) e.getComponent();
-	}
-	
-	@Override
-	public void mouseReleased(MouseEvent e){
-		int press = e.getButton();
 		
-		if(press==MouseEvent.BUTTON3){
-			showTrackMenu(e.getX(),e.getY());
-			
-		} else {
-			if(this.playlist.sortingData==null){
-				moveTrack(from, to);
-				from = null;
-				to = null;
-				this.playlist.repaint();
-				this.playlist.revalidate();
-			}
-		}
-	}
-	
-	@Override
-	public void mousePressed(MouseEvent e){
-		from = (Track) e.getComponent();
-	}
-	
-	@Override
-	public void mouseClicked(MouseEvent e){
-		TimerTask clickTimer = new TimerTask(){
+		this.addMouseListener(new MouseAdapter(){
 			@Override
-			public void run(){
-				clicks = 0;
+			public void mouseEntered(MouseEvent e){
+				to = (Track) e.getComponent();
 			}
-		};
-		
-		Timer clickInterval = new Timer();
-		clickInterval.schedule(clickTimer, 250);
-		
-		clicks++;
-		
-		if(clicks==2)this.playTrack();
+			
+			@Override
+			public void mouseReleased(MouseEvent e){
+				Playlist thisPlaylist = Track.this.playlist;
+				
+				if(thisPlaylist.sortingData==null){
+					moveTrack(from, to);
+					from = null;
+					to = null;
+					thisPlaylist.repaint();
+					thisPlaylist.revalidate();
+				}
+			}
+			
+			@Override
+			public void mousePressed(MouseEvent e){
+				from = (Track) e.getComponent();
+			}
+			
+			@Override
+			public void mouseClicked(MouseEvent e){
+				System.out.println(Track.this.getNum());
+				
+				int press = e.getButton();
+				
+				if(press==MouseEvent.BUTTON3){
+					showTrackMenu(e.getX(),e.getY());
+				} else {
+					TimerTask clickTimer = new TimerTask(){
+						@Override
+						public void run(){
+							clicks = 0;
+						}
+					};
+					
+					Timer clickInterval = new Timer();
+					clickInterval.schedule(clickTimer, 250);
+					
+					clicks++;
+					
+					if(clicks==2) {
+						Track.this.playlist.man.mp.setQueue(Track.this);
+						Track.this.playlist.man.mp.playTrack(Track.this);
+					}
+				}
+			}
+		});
 	}
+	
+	
 	
 	public void showTrackMenu(int xPos, int yPos){
-		
 		JPopupMenu pop = new JPopupMenu("ColumnSelection");
+		
+		JMenuItem copyTrackName = new JMenuItem("Copy Track Name");
+		copyTrackName.addActionListener(e -> {
+			StringSelection string = new StringSelection(this.getName());
+			Toolkit.getDefaultToolkit().getSystemClipboard().setContents(string,null);
+		});
+		pop.add(copyTrackName);
 		
 		JMenuItem copyID = new JMenuItem("Copy Track ID");
 		copyID.addActionListener(e -> {
-			
 			StringSelection string = new StringSelection(this.trackJSON.getString("id"));
 			Toolkit.getDefaultToolkit().getSystemClipboard().setContents(string,null);
 		});
 		pop.add(copyID);
-		
 		
 		pop.repaint();
 		pop.revalidate();
 		pop.show(this,xPos,yPos);
 	}
 	
+	public String getName(){
+		return(this.trackJSON.getString("trackName"));
+	}
+	
+	public String getArtist(){
+		return(this.trackJSON.getString("trackArtist"));
+	}
+	
 	public void setY(int y){
 		this.constraints.gridy = y;
 	}
 	
-	public String getSongURL(){
-		String songURL = null;
-		
-		try{
-			String query = (this.name.getText() + " " + this.artist.getText() + " lyrics").replaceAll("\\s+","%20");
-			Document doc = Jsoup.connect("https://www.google.com/search?tbm=vid&q=" + query).get();
-			Element videoElement = doc.selectFirst("[data-surl]");
-			songURL = videoElement.attr("data-surl");
-		} catch (Exception e){
-			JOptionPane.showMessageDialog(null, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-		}
-		
-		return(songURL);
-	}
-	
-	public void playTrack(){
-		if(clip!=null) {
-			clip.stop();
-			clip.close();
-			clip = null;
-		} else {
-			String song = this.getSongURL();
-			
-			SwingWorker sw = new SwingWorker(){
-				@Override
-				protected String doInBackground(){
-					
-					try{
-						ProcessBuilder pb = new ProcessBuilder("yt-dlp", "-x", "--audio-format", "wav", song, "--force-overwrite","-o","temp.wav").directory(new File("."));
-						Process p = pb.start();
-						p.waitFor();
-						
-					} catch (Exception e){
-						e.printStackTrace();
-					}
-					
-					return ("");
-				}
-				
-				@Override
-				protected void done(){
-					try{
-						File file = new File("temp.wav");
-						AudioInputStream ais = AudioSystem.getAudioInputStream(file);
-						clip = AudioSystem.getClip(); 
-						clip.open(ais);				
-						clip.start();
-						ais.close();
-					} catch (Exception e){}
-				}
-			};
-			
-			sw.execute();
-		}
+	public int getNum(){
+		return(this.constraints.gridy);
 	}
 	
 	public Data[] getRow(){
@@ -272,16 +272,21 @@ class Track extends JPanel implements MouseListener{
 		if(from!=to && from != null && to != null){
 			Playlist playlist = from.playlist;
 			ArrayList<Track> tracks = new ArrayList(Arrays.asList(from.playlist.getTracks()));
+			boolean topToBottom = from.getNum()<to.getNum();
+			
+			from.playlist.man.moveJSONSong(from.getNum()-1,to.getNum()-1);
 			
 			tracks.remove(from);
-			tracks.add(tracks.indexOf(to),from);
+			
+			if(topToBottom) tracks.add(tracks.indexOf(to)+1,from);
+			else tracks.add(tracks.indexOf(to),from);
 			
 			for(int i = 0; i < tracks.size(); i++){
 				Track currentTrack = tracks.get(i);
+				currentTrack.num.setText(String.valueOf(i+1));
 				currentTrack.constraints.gridy = i+1;
 				playlist.add(currentTrack,currentTrack.constraints);
 			}
 		}
 	}
-	
 }

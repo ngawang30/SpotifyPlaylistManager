@@ -77,16 +77,17 @@ public class Recommender{
 	static JScrollPane mainScroll;
 	static JPanel mainPanel;
 	
-	public static void getRecommender(PlaylistManager man){
+	public Recommender(PlaylistManager man){
 		JFrame frame = new JFrame("Recommendation Generator");
 		frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 		frame.setSize(500,500);
-		frame.setLocationRelativeTo(null);
+		frame.setLocation(man.mainFrame.getX()+man.mainFrame.getWidth(),man.mainFrame.getY());
 		frame.setVisible(true);
 		
 		//main panel
 		mainPanel = new JPanel(new GridBagLayout()); 
 		mainScroll = new JScrollPane();
+		mainScroll.getVerticalScrollBar().setUnitIncrement(50);
 		
 		//Recommendation Settings
 		JPanel panel = new JPanel(new GridBagLayout());
@@ -183,8 +184,6 @@ public class Recommender{
 		c.gridx = 1;
 		panel.add(speechinessTextField,c);
 		
-		
-		
 		JLabel valence = new JLabel("Valence");
 		c = new GridBagConstraints();
 		c.gridx = 0;
@@ -215,13 +214,9 @@ public class Recommender{
 					query += in.queryAddition;
 				}
 			}
-			
-			System.out.println(query);
-			
 			trackJSON = generateRecommendationJSONArray(PlaylistManager.getRequestResponse(query));
 			
-			populate();
-			
+			populate(man);
 			
 			frame.remove(panel);
 			frame.add(mainScroll,BorderLayout.CENTER);
@@ -254,7 +249,7 @@ public class Recommender{
 		frame.revalidate();
 	}
 	
-	public static void populate(){
+	public static void populate(PlaylistManager man){
 		mainPanel = new JPanel(new GridBagLayout()); 
 		mainScroll = new JScrollPane(mainPanel);
 		
@@ -268,7 +263,7 @@ public class Recommender{
 				trackCover = new ImageIcon(trackCoverImage.getScaledInstance(100,100,Image.SCALE_DEFAULT));
 			} catch (Exception e){}
 			
-			JPanel track = new JPanel(new GridBagLayout());
+			Track track = new Track(man, currentTrack);
 			GridBagConstraints c = new GridBagConstraints();
 			c.gridx = 0;
 			JLabel numLabel = new JLabel(String.valueOf(i+1));

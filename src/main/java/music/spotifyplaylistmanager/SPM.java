@@ -76,12 +76,12 @@ public class SPM {
 		app();
 	}
 	
-	
-	
 	public static void app (){
 		//Playlist Body Component
 		PlaylistManager man = new PlaylistManager();
 		man.token = PlaylistManager.getToken();
+		
+		man.mp = new MusicPlayer();
 		
 		man.playlist = new Playlist(man);
 		
@@ -100,14 +100,11 @@ public class SPM {
 		JMenuItem importJSONMenuItem = new JMenuItem("Import Playlist From JSON");
 		importJSONMenuItem.addActionListener(e -> PlaylistManager.loadPlaylistFromJSON(man));
 
-
 		JMenuItem exportJSONMenuItem = new JMenuItem("Export Playlist to JSON");
 		exportJSONMenuItem.addActionListener(e -> PlaylistManager.exportToJSON(man));
 		
 		JMenuItem exportSpotifyMenuItem = new JMenuItem("Export Playlist to Spotify");
 		//exportSpotifyMenuItem.addActionListener(e -> uploadPlaylist(man));
-		
-		
 		
 		JMenu playlistMenu = new JMenu("Playlist");
 		playlistMenu.add(importSpotifyMenuItem);
@@ -131,30 +128,35 @@ public class SPM {
 		profile.add(status);
 		
 		JMenuItem openRecommendation = new JMenuItem("Open");
-		openRecommendation.addActionListener(e -> Recommender.getRecommender(man));
+		openRecommendation.addActionListener(e -> new Recommender(man));
 		
 		JMenu recommendationMenu = new JMenu("Recommendation");
 		recommendationMenu.add(openRecommendation);
 		
+		JMenuItem openHelp = new JMenuItem("Open");
+		openHelp.addActionListener(e -> man.getHelp());
+		
+		JMenu helpMenu = new JMenu("Help");
+		helpMenu.add(openHelp);
 		
 		//MenuBar Composition
 		JMenuBar menuBar = new JMenuBar();
 		menuBar.add(playlistMenu);
 		menuBar.add(profile);
 		menuBar.add(recommendationMenu);
-		
+		menuBar.add(helpMenu);
 
 		//Application Component
 		JFrame frame = new JFrame("Spotify Playlist Manager");
+		man.mainFrame = frame;
 
 		frame.add(playlistContainerScroll,BorderLayout.CENTER);
+		frame.add(man.mp,BorderLayout.SOUTH);
 
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		frame.setSize(500,500);
+		frame.setSize(500,600);
 		frame.setLocationRelativeTo(null);
-
 		frame.setJMenuBar(menuBar);
 		frame.setVisible(true);
-		
 	}
 }
