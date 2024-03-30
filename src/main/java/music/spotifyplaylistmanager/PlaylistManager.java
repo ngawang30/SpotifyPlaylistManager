@@ -74,10 +74,15 @@ import javax.swing.JList;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.JTextArea;
+import java.awt.Window;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 
 class PlaylistManager{
 	JScrollPane playlistScrollContainer = null;
 	JFrame mainFrame;
+	Recommender recom;
+	Help help;
 	MusicPlayer mp;
 	JSONArray playlistJSON = null;
 	Playlist playlist = null;
@@ -103,41 +108,6 @@ class PlaylistManager{
 		this.playlistJSON = new JSONArray(JSONTracks);
 	}
 	
-	public void getHelp(){
-		JFrame frame = new JFrame("Help");
-		frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-		frame.setSize(500,500);
-		frame.setLocationRelativeTo(null);
-		frame.setVisible(true);
-		
-		JTextArea helpInstructions = new JTextArea();
-		helpInstructions.setLineWrap(true);
-		helpInstructions.setWrapStyleWord(true);
-		String movingTracks = "If tracks are not moving, be sure that no column is being ordered as track movement is disabled when sorted by any column.  To disable, click on sorted column until no sort symbol is shown or click on the number column to reset order.";
-		String playingMusic = "If you have trouble playing music, make sure you have yt-dlp downloaded and have added it to your system path as this application uses it via commandline.";
-		String others = "If you encounter any other problems, please contact me at ngawang30@gmail.com with issues.";
-		
-		JList helpOptions = new JList(new String[]{"Moving Tracks","Playing Music","Others"});
-		helpOptions.addListSelectionListener(e -> {
-			if(helpOptions.getSelectedValue().equals("Moving Tracks")){
-				helpInstructions.setText(movingTracks);
-			}
-			
-			if(helpOptions.getSelectedValue().equals("Playing Music")){
-				helpInstructions.setText(playingMusic);
-			}
-			
-			if(helpOptions.getSelectedValue().equals("Others")){
-				helpInstructions.setText(others);
-			}
-		});
-		
-		JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,helpOptions,helpInstructions);
-		split.setResizeWeight(.2);
-		
-		frame.add(split,BorderLayout.CENTER);
-	}
-	
 	public void showStatus(){
 		String authorization = this.authorizedToken==null?"Not Logged in":"Logged in";
 		
@@ -147,7 +117,7 @@ class PlaylistManager{
 		
 		JButton login = new JButton("Login");
 		login.addActionListener(e -> {
-			this.authorizedToken=getAuthorizedToken();
+			this.authorizedToken = APIHandler.getAuthorizedToken();
 			if(this.authorizedToken!=null){ 
 				currentStatus.setText("Authorized");
 				login.setVisible(false);
@@ -166,11 +136,9 @@ class PlaylistManager{
 		prompt.setVisible(true);
 	}
 	
-	
-	
 	public static String getUserProfile(PlaylistManager man){
 		String token = man.authorizedToken;
-		return (getRequestResponse("https://api.spotify.com/v1/me",token));
+		return (APIHandler.getRequestResponse("https://api.spotify.com/v1/me",token));
 	}
 	
 /* 	public static void uploadPlaylist(PlaylistManager man){
@@ -270,7 +238,7 @@ class PlaylistManager{
 	}
 	
 	public static String getUserPlaylists(PlaylistManager man){
-		return (getRequestResponse("https://api.spotify.com/v1/me/playlists",man.authorizedToken));
+		return (APIHandler.getRequestResponse("https://api.spotify.com/v1/me/playlists",man.authorizedToken));
 	}
 	
 	public static void showUserInfo(PlaylistManager man){
@@ -312,7 +280,6 @@ class PlaylistManager{
 		userInfoFrame.setVisible(true);
 	}
 	
-	
 	public static void exportToJSON(PlaylistManager man){
 		JFileChooser fc = new JFileChooser();
 		int response = fc.showSaveDialog(null);
@@ -322,7 +289,6 @@ class PlaylistManager{
 		}
 	}
 
-
 	public static void loadPlaylistFromJSON(PlaylistManager man){
 		JFileChooser fc = new JFileChooser();
 		int response = fc.showOpenDialog(null);
@@ -331,6 +297,18 @@ class PlaylistManager{
 			man.playlistJSON = new JSONArray(readFromFile(fc.getSelectedFile()));
 			populate(man);
 		}
+	}
+	
+	public static boolean validatePlaylistID(String playlistID){
+		if(playlistID.equals("")) return(false);
+		
+		String response = APIHandler.getRequestResponse("https://api.spotify.com/v1/playlists/" + playlistID);
+		JSONObject responseJSON = new JSONObject(response);
+		
+		if(responseJSON.optJSONObject("error")!=null)return(false);
+		System.out.println(responseJSON.optJSONObject("error"));
+		
+		return(true);
 	}
 
 
@@ -372,7 +350,6 @@ class PlaylistManager{
 		}
 		
 		if(isReplace == JOptionPane.YES_OPTION){
-			
 			man.playlist = new Playlist(man);
 			man.playlistScrollContainer.setViewportView(man.playlist);
 			man.playlistScrollContainer.repaint();
@@ -390,7 +367,6 @@ class PlaylistManager{
 			progressWindow.pack();
 			progressWindow.setVisible(true);
 			
-
 			SwingWorker sw = new SwingWorker(){
 				@Override
 				protected String doInBackground(){
@@ -652,18 +628,8 @@ class PlaylistManager{
 					//prompt("Playlist Loader", "Completed Loaded Playlist");
 				}
 			};
-
 			sw.execute();
 		}
-	}
-
-	public static boolean validatePlaylistID(String playlistID){
-		String response = getRequestResponse("https://api.spotify.com/v1/playlists/" + playlistID);
-		JSONObject responseJSON = new JSONObject(response);
-		
-		if(responseJSON.optString("error")!=null) return false;
-
-		return(true);
 	}
 
 	public static String readFromFile(File file){
@@ -682,145 +648,24 @@ class PlaylistManager{
 
 	}
 
-	public static String getRequestResponse(String url){
-		String response = "error";
-
-		try{
-			HttpRequest generalRequest = HttpRequest.newBuilder()
-				.uri(new URI(url))
-				.headers("Authorization", "Bearer " + getToken())
-				.GET()
-				.build();
-				
-			HttpResponse<String> responseBody = HttpClient.newHttpClient().send(generalRequest,HttpResponse.BodyHandlers.ofString());
-			response = responseBody.body();
-			
-		} catch (Exception e){}
-
-		return (response);
-	}
-	
-	
-	public static String getRequestResponse(String url, String token){
-		String response = "error";
-
-		try{
-			HttpRequest generalRequest = HttpRequest.newBuilder()
-				.uri(new URI(url))
-				.headers("Authorization", "Bearer " + token)
-				.GET()
-				.build();
-				
-			HttpResponse<String> responseBody = HttpClient.newHttpClient().send(generalRequest,HttpResponse.BodyHandlers.ofString());
-			response = responseBody.body();
-		} catch (Exception e){}
-
-		return (response);
-	}
-
-
 	public static JSONArray getPlaylistTracks(String playlistID){
 		int offSet = 50;
 		int limit = 50;
 		JSONArray allTracks = new JSONArray();
-		String response = getRequestResponse("https://api.spotify.com/v1/playlists/" + playlistID + "/tracks?limit=50");
+		String response = APIHandler.getRequestResponse("https://api.spotify.com/v1/playlists/" + playlistID + "/tracks?limit=50");
 		JSONObject responseJSON = new JSONObject (response);
 		allTracks.putAll(responseJSON.getJSONArray("items"));
 		
 		int size = responseJSON.getInt("total");
 
 		while(offSet < size){
-			response = getRequestResponse("https://api.spotify.com/v1/playlists/" + playlistID + "/tracks?limit=50&offset=" + offSet);
+			response = APIHandler.getRequestResponse("https://api.spotify.com/v1/playlists/" + playlistID + "/tracks?limit=50&offset=" + offSet);
 			responseJSON = new JSONObject (response);
 			allTracks.putAll(responseJSON.getJSONArray("items"));
 
 			offSet += 50;
 		}
-
 		return (allTracks);
-	}
-	
-	public static void loadMusicBrainz(JSONArray in){
-		int counter = 0;
-		int rate = 1000;
-		
-		try{
-			for(int i = 0; i < in.length(); i++){
-				//Request 1
-				
-				JSONObject currentTrack = in.getJSONObject(i);
-				String query = "query=" + URLEncoder.encode("ANDrecording:\"" + (currentTrack.getString("trackName") + "\"ANDartist:\"" + currentTrack.getString("trackArtist") + "\"ANDrelease:\"" + currentTrack.getString("album")) + "\"","UTF-8");
-				
-				HttpRequest musicBrainzRequest = HttpRequest.newBuilder()
-					.uri(new URI("https://musicbrainz.org/ws/2/recording?" + query))
-					.headers("Accept","application/json","User-Agent","SpotifyPlaylistManager ( ngawang30@gmail.com )")
-					.GET()
-					.build();
-				
-				HttpResponse<String> response = HttpClient.newHttpClient().send(musicBrainzRequest,HttpResponse.BodyHandlers.ofString());
-				JSONObject newBrainz = new JSONObject(response.body());
-				
-				String brainzRecordingID = newBrainz.getJSONArray("recordings").getJSONObject(0).getString("id");
-				in.getJSONObject(i).put("brainzRecordingID",brainzRecordingID);
-
-				String brainzArtistID = newBrainz.getJSONArray("recordings").getJSONObject(0).getJSONArray("artist-credit").getJSONObject(0).getJSONObject("artist").getString("id");
-				in.getJSONObject(i).put("brainzArtistID",brainzArtistID);
-				
-				
-				//API LimitCheck
-				Thread.sleep(rate);
-				
-				
-				//Request 2
-				 musicBrainzRequest = HttpRequest.newBuilder()
-					.uri(new URI("https://musicbrainz.org/ws/2/artist/" + brainzArtistID))
-					.headers("Accept","application/json","User-Agent","SpotifyPlaylistManager ( ngawang30@gmail.com )")
-					.GET()
-					.build();
-				
-				response = HttpClient.newHttpClient().send(musicBrainzRequest,HttpResponse.BodyHandlers.ofString());
-				newBrainz = new JSONObject(response.body());
-				
-				String artistType = newBrainz.optString("type","null");
-				in.getJSONObject(i).put("artistType",artistType);
-				
-				String artistCountry = newBrainz.isNull("area")?"null":newBrainz.getJSONObject("area").getString("name");
-				in.getJSONObject(i).put("artistCountry",artistCountry);
-				
-				String artistGender = newBrainz.isNull("gender")?"null":newBrainz.getString("gender");
-				in.getJSONObject(i).put("artistGender",artistGender);
-				
-				String isDead = newBrainz.isNull("life-span")?"null":String.valueOf(newBrainz.getJSONObject("life-span").getBoolean("ended"));
-				in.getJSONObject(i).put("isDead",isDead);
-				
-				String subArea = newBrainz.isNull("begin_area")?"null":newBrainz.getJSONObject("begin_area").getString("name");
-				in.getJSONObject(i).put("subArea",subArea);
-				
-				//API LimitCheck
-				Thread.sleep(rate);
-				
-				
-				//request 3
-				musicBrainzRequest = HttpRequest.newBuilder()
-					.uri(new URI("https://musicbrainz.org/ws/2/recording/" + brainzRecordingID + "?inc=releases"))
-					.headers("Accept","application/json","User-Agent","SpotifyPlaylistManager ( ngawang30@gmail.com )")
-					.GET()
-					.build();
-				
-				response = HttpClient.newHttpClient().send(musicBrainzRequest,HttpResponse.BodyHandlers.ofString());
-				newBrainz = new JSONObject(response.body());
-				
-				JSONObject languageRoot = newBrainz.getJSONArray("releases").getJSONObject(0).getJSONObject("text-representation");
-				String language = languageRoot.isNull("language")?"null":(new Locale(newBrainz.getJSONArray("releases").getJSONObject(0).getJSONObject("text-representation").getString("language"))).getDisplayLanguage();
-				in.getJSONObject(i).put("language",language);
-				
-				//API LimitCheck
-				Thread.sleep(rate);
-				
-			}
-		} catch(Exception e){
-			e.printStackTrace();
-		}
 	}
 	
 	public static JSONArray generateCustomJSON(String playlistID){
@@ -836,8 +681,7 @@ class PlaylistManager{
 			
 			customArray.put(counter++,newJSON);
 		}
-		
-		loadMusicBrainz(customArray);
+		APIHandler.loadMusicBrainz(customArray);
 		
 		return(customArray);
 	}
@@ -887,124 +731,56 @@ class PlaylistManager{
 			String id = currentTrack.getString("id");
 			newJSON.put("id",id);
 		}
-		
 		return (newJSON);
 	}
+}
 
-	public static String getToken(){
-		String clientID = "c592a3c9e9b34be59a79bfe0b98aa6a1";
-		String clientSecret = "ff0366ee8e63480f88add8208435ad74";
-		String tempLogin = clientID + ":" + clientSecret;
-		String login = Base64.getEncoder().encodeToString(tempLogin.getBytes());
-		byte [] requestBody = "grant_type=client_credentials".getBytes();
-		HttpResponse<String> response = null;
+class Help extends JDialog{
+	public Help(PlaylistManager man){
+		super(man.mainFrame,"Help",true);
+		this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+		this.setSize(500,500);
+		this.setLocationRelativeTo(null);
+		man.help = this;
 		
-		try{
-			HttpRequest tokenRequest = HttpRequest.newBuilder()
-				.uri(new URI("https://accounts.spotify.com/api/token"))
-				.headers("Authorization", "Basic " + login, "Content-Type", "application/x-www-form-urlencoded")
-				.POST(HttpRequest.BodyPublishers.ofByteArray(requestBody))
-				.build();
+		this.addWindowListener(new WindowAdapter(){
+			@Override
+			public void windowClosed(WindowEvent e){
+				man.help = null;
+			}
 			
-			response = HttpClient.newHttpClient().send(tokenRequest,HttpResponse.BodyHandlers.ofString());
-		} catch (Exception e){}
+			@Override
+			public void windowDeactivated(WindowEvent e){
+			}
+		});
 		
-		JSONObject tokenJSON = new JSONObject(response.body());
+		JTextArea helpInstructions = new JTextArea();
+		helpInstructions.setLineWrap(true);
+		helpInstructions.setWrapStyleWord(true);
+		String movingTracks = "If tracks are not moving, be sure that no column is being ordered as track movement is disabled when sorted by any column.  To disable, click on sorted column until no sort symbol is shown or click on the number column to reset order.";
+		String playingMusic = "If you have trouble playing music, make sure you have yt-dlp downloaded and have added it to your system path as this application uses it via commandline.";
+		String others = "If you encounter any other problems, please contact me at ngawang30@gmail.com with issues.";
 		
-		return (tokenJSON.getString("access_token"));
-	}
-	
-	public static String getAuthorizationCode(){
-		
-		String site = "https://accounts.spotify.com/authorize?client_id=c592a3c9e9b34be59a79bfe0b98aa6a1&redirect_uri=http://localhost/&response_type=code&scope=user-read-email,user-read-private,playlist-modify-public,playlist-modify-private,playlist-read-private,user-read-playback-state,user-modify-playback-state,user-read-currently-playing,";
-		WebDriver driver = new ChromeDriver();
-		driver.get(site);
-		String authorizationCode = "";
-		
-		SwingWorker sw = new SwingWorker(){
-				@Override
-				protected String doInBackground(){
-					try{
-						while(driver.getTitle()!=null){
-						}
-					} catch (NoSuchWindowException e){
-						driver.quit();
-					}
-
-					return("");
-				}
-				
-				@Override
-				protected void done(){}
-				
-		};
-		
-		sw.execute();
-		
-		new WebDriverWait(driver, Duration.ofMinutes(2)).until(ExpectedConditions.urlContains("localhost/?code"));
-		
-		authorizationCode = driver.getCurrentUrl();
-		authorizationCode = authorizationCode.substring(authorizationCode.indexOf("=")+1);
-		driver.quit();
-		
-		return(authorizationCode);
-	}
-	
-	public static String getAuthorizedToken(){
-		
-		String clientID = "c592a3c9e9b34be59a79bfe0b98aa6a1";
-		String clientSecret = "ff0366ee8e63480f88add8208435ad74";
-		String tempLogin = clientID + ":" + clientSecret;
-		String login = Base64.getEncoder().encodeToString(tempLogin.getBytes());
-		HttpResponse<String> response = null;
-		String authorizationCode = getAuthorizationCode();
-		
-		byte [] requestBody = new String("grant_type=authorization_code&code=" + authorizationCode + "&redirect_uri=http://localhost/").getBytes();
-		
-		try{
-			HttpRequest tokenRequest = HttpRequest.newBuilder()
-				.uri(new URI("https://accounts.spotify.com/api/token"))
-				.headers("Authorization", "Basic " + login, "Content-Type", "application/x-www-form-urlencoded")
-				.POST(HttpRequest.BodyPublishers.ofByteArray(requestBody))
-				.build();
-				
-			HttpClient tokenClient = HttpClient.newBuilder()
-				.followRedirects(HttpClient.Redirect.ALWAYS)
-				.build();
+		JList helpOptions = new JList(new String[]{"Moving Tracks","Playing Music","Others"});
+		helpOptions.addListSelectionListener(e -> {
+			if(helpOptions.getSelectedValue().equals("Moving Tracks")){
+				helpInstructions.setText(movingTracks);
+			}
 			
-			response = tokenClient.send(tokenRequest,HttpResponse.BodyHandlers.ofString());
-		} catch (Exception e){}
-		
-		String token = new JSONObject(response.body()).getString("access_token");
-		
-		return (token);
-	}
-	
-	public static String getAuthorizedToken(String refreshToken){
-		String clientID = "c592a3c9e9b34be59a79bfe0b98aa6a1";
-		String clientSecret = "ff0366ee8e63480f88add8208435ad74";
-		String tempLogin = clientID + ":" + clientSecret;
-		String login = Base64.getEncoder().encodeToString(tempLogin.getBytes());
-		HttpResponse<String> response = null;
-		
-		byte [] requestBody = new String("grant_type=refresh_token&refresh_token=" + refreshToken).getBytes();
-		
-		try{
-			HttpRequest tokenRequest = HttpRequest.newBuilder()
-				.uri(new URI("https://accounts.spotify.com/api/token"))
-				.headers("Authorization", "Basic " + login, "Content-Type", "application/x-www-form-urlencoded")
-				.POST(HttpRequest.BodyPublishers.ofByteArray(requestBody))
-				.build();
-				
-			HttpClient tokenClient = HttpClient.newBuilder()
-				.followRedirects(HttpClient.Redirect.ALWAYS)
-				.build();
+			if(helpOptions.getSelectedValue().equals("Playing Music")){
+				helpInstructions.setText(playingMusic);
+			}
 			
-			response = tokenClient.send(tokenRequest,HttpResponse.BodyHandlers.ofString());
-		} catch (Exception e){}
+			if(helpOptions.getSelectedValue().equals("Others")){
+				helpInstructions.setText(others);
+			}
+		});
 		
-		String token = new JSONObject(response.body()).getString("access_token");
+		JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,helpOptions,helpInstructions);
+		split.setResizeWeight(.2);
 		
-		return (token);
+		this.add(split,BorderLayout.CENTER);
+		
+		this.setVisible(true);
 	}
 }

@@ -68,7 +68,9 @@ import java.io.BufferedReader;
 import java.net.URLEncoder;
 import javax.swing.event.DocumentListener;
 import javax.swing.event.DocumentEvent;
-import java.lang.Double;
+import javax.swing.UIManager;
+import com.formdev.flatlaf.FlatLightLaf;
+import com.formdev.flatlaf.FlatDarkLaf;
 
 
 public class SPM {
@@ -77,21 +79,30 @@ public class SPM {
 	}
 	
 	public static void app (){
-		//Playlist Body Component
+		FlatDarkLaf.install();
+		
+		JFrame frame = new JFrame("Spotify Playlist Manager");
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frame.setSize(700,600);
+		frame.setLocationRelativeTo(null);
+		
 		PlaylistManager man = new PlaylistManager();
-		man.token = PlaylistManager.getToken();
+		man.token = APIHandler.getToken();
+		man.mainFrame = frame;
 		
 		man.mp = new MusicPlayer();
+		frame.add(man.mp,BorderLayout.SOUTH);
 		
 		man.playlist = new Playlist(man);
 		
 		JPanel playlistContainer = new JPanel(new GridBagLayout());
-
 		JScrollPane playlistContainerScroll = new JScrollPane();
 		playlistContainerScroll.setViewportView(man.playlist);
 		playlistContainerScroll.getVerticalScrollBar().setUnitIncrement(10);
+		frame.add(playlistContainerScroll,BorderLayout.CENTER);
 		
 		man.playlistScrollContainer = playlistContainerScroll;
+		
 
 		//Menu Component //Playlist Menu
 		JMenuItem importSpotifyMenuItem = new JMenuItem("Import Playlist From Spotify");
@@ -127,36 +138,57 @@ public class SPM {
 		profile.add(playlists);
 		profile.add(status);
 		
+		//Menu Component //Recommendation
 		JMenuItem openRecommendation = new JMenuItem("Open");
 		openRecommendation.addActionListener(e -> new Recommender(man));
 		
 		JMenu recommendationMenu = new JMenu("Recommendation");
 		recommendationMenu.add(openRecommendation);
 		
+		//Menu Component //Help
 		JMenuItem openHelp = new JMenuItem("Open");
-		openHelp.addActionListener(e -> man.getHelp());
+		openHelp.addActionListener(e -> new Help(man));
 		
 		JMenu helpMenu = new JMenu("Help");
 		helpMenu.add(openHelp);
 		
+		//LightMode
+		JMenuItem toggleLightMode = new JMenuItem("🔆");
+		toggleLightMode.addActionListener(e-> {
+			String lookAndFeel = UIManager.getLookAndFeel().getName();
+			if(lookAndFeel.equals("FlatLaf Dark")){
+				FlatLightLaf.install();
+				SwingUtilities.updateComponentTreeUI(frame);
+				
+				if(man.recom!=null){
+					SwingUtilities.updateComponentTreeUI(man.recom);
+				}
+				
+				if(man.help!=null){
+					SwingUtilities.updateComponentTreeUI(man.help);
+				}
+				
+			} else {
+				FlatDarkLaf.install();
+				SwingUtilities.updateComponentTreeUI(frame);
+				
+				if(man.help!=null){
+					SwingUtilities.updateComponentTreeUI(man.help);
+				}
+			}
+			
+			
+		});
+		
 		//MenuBar Composition
 		JMenuBar menuBar = new JMenuBar();
+		menuBar.add(toggleLightMode);
 		menuBar.add(playlistMenu);
 		menuBar.add(profile);
 		menuBar.add(recommendationMenu);
 		menuBar.add(helpMenu);
-
-		//Application Component
-		JFrame frame = new JFrame("Spotify Playlist Manager");
-		man.mainFrame = frame;
-
-		frame.add(playlistContainerScroll,BorderLayout.CENTER);
-		frame.add(man.mp,BorderLayout.SOUTH);
-
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		frame.setSize(500,600);
-		frame.setLocationRelativeTo(null);
 		frame.setJMenuBar(menuBar);
+	
 		frame.setVisible(true);
 	}
 }

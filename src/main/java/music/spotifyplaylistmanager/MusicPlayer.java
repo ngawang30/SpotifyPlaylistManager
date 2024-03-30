@@ -82,8 +82,6 @@ public class MusicPlayer extends JPanel{
 	public MusicPlayer(){
 		this.setLayout(new GridBagLayout());
 		
-		this.setBorder(BorderFactory.createLineBorder(Color.BLACK));
-		
 		GridBagConstraints c = new GridBagConstraints();
 		c.gridx = 0;
 		c.gridy = 3;
@@ -154,14 +152,14 @@ public class MusicPlayer extends JPanel{
 		
 		this.add(pb,c);
 		
-		this.songName = new JLabel("");
+		this.songName = new JLabel(" ");
 		c = new GridBagConstraints();
 		c.gridwidth = 3;
 		c.gridx = 0;
 		c.gridy = 0;
 		this.add(this.songName,c);
 		
-		this.artist = new JLabel("");
+		this.artist = new JLabel(" ");
 		c = new GridBagConstraints();
 		c.gridwidth = 3;
 		c.gridx = 0;

@@ -57,7 +57,6 @@ import javax.swing.JPopupMenu;
 import javax.swing.JCheckBox;
 import java.util.Comparator;
 
-
 class Data extends JLabel implements MouseListener{
 	Track track;
 	int sortStage = 0;

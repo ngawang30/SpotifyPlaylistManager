@@ -70,19 +70,29 @@ import javax.swing.text.Document;
 import javax.swing.JTextArea;
 import java.util.ArrayList;
 import java.awt.FlowLayout;
+import java.awt.Window;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 
 
-public class Recommender{
+public class Recommender extends JFrame{
 	static JSONArray trackJSON;
 	static JScrollPane mainScroll;
 	static JPanel mainPanel;
 	
 	public Recommender(PlaylistManager man){
-		JFrame frame = new JFrame("Recommendation Generator");
-		frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-		frame.setSize(500,500);
-		frame.setLocation(man.mainFrame.getX()+man.mainFrame.getWidth(),man.mainFrame.getY());
-		frame.setVisible(true);
+		super("Recommendation Generator");
+		this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+		this.setSize(500,500);
+		this.setLocation(man.mainFrame.getX()+man.mainFrame.getWidth(),man.mainFrame.getY());
+		man.recom = this;
+		
+		this.addWindowListener(new WindowAdapter(){
+			@Override
+			public void windowClosed(WindowEvent e){
+				man.recom = null;
+			}
+		});
 		
 		//main panel
 		mainPanel = new JPanel(new GridBagLayout()); 
@@ -91,7 +101,7 @@ public class Recommender{
 		
 		//Recommendation Settings
 		JPanel panel = new JPanel(new GridBagLayout());
-		frame.add(panel,BorderLayout.CENTER);
+		this.add(panel,BorderLayout.CENTER);
 		
 		JLabel accousticness = new JLabel("Accousticness");
 		GridBagConstraints c = new GridBagConstraints();
@@ -214,14 +224,14 @@ public class Recommender{
 					query += in.queryAddition;
 				}
 			}
-			trackJSON = generateRecommendationJSONArray(PlaylistManager.getRequestResponse(query));
+			trackJSON = generateRecommendationJSONArray(APIHandler.getRequestResponse(query));
 			
 			populate(man);
 			
-			frame.remove(panel);
-			frame.add(mainScroll,BorderLayout.CENTER);
-			frame.repaint();
-			frame.revalidate();
+			this.remove(panel);
+			this.add(mainScroll,BorderLayout.CENTER);
+			this.repaint();
+			this.revalidate();
 		});
 		c = new GridBagConstraints();
 		c.gridx = 0;
@@ -232,8 +242,10 @@ public class Recommender{
 		JPanel buttonRow = new JPanel(new FlowLayout(FlowLayout.RIGHT));
 		JButton settings = new JButton("⚙");
 		buttonRow.add(settings);
-		frame.add(buttonRow, BorderLayout.SOUTH);
-		settings.addActionListener(e -> toggleSettings(frame,panel,mainScroll));
+		this.add(buttonRow, BorderLayout.SOUTH);
+		settings.addActionListener(e -> toggleSettings(this,panel,mainScroll));
+		
+		this.setVisible(true);
 	}
 	
 	public static void toggleSettings(JFrame frame, Component one, Component two){
