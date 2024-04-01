@@ -6,77 +6,44 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse;
-import java.io.OutputStream;
-import java.io.InputStream;
 import java.io.File;
 import java.io.FileWriter;
 import java.util.Scanner;
 import java.awt.BorderLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.Image;
-import java.util.Base64;
 import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JScrollPane;
 import javax.swing.JFileChooser;
 import javax.swing.JProgressBar;
-import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import javax.swing.SwingConstants;
 import javax.swing.JButton;
 import javax.swing.JTextField;
 import javax.swing.JPanel;
-import javax.swing.JMenuBar;
-import javax.swing.JMenu;
-import javax.swing.JMenuItem;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import org.json.JSONObject;
 import org.json.JSONArray;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.support.ui.WebDriverWait;
-import org.openqa.selenium.support.ui.ExpectedConditions;
 import java.time.Duration;
 import java.awt.Color;
 import javax.swing.BorderFactory;
-import java.awt.GridBagLayout;
 import java.awt.GridBagConstraints;
 import java.awt.Insets;
-import java.awt.event.MouseListener;
-import java.awt.event.MouseEvent;
 import java.awt.Dimension;
-import java.awt.Container;
-import java.awt.Component;
-import java.awt.Point;
-import java.util.List;
-import java.util.Arrays;
-import javax.swing.JPopupMenu;
-import javax.swing.JCheckBox;
 import javax.swing.JOptionPane;
 import javax.swing.JDialog;
-import java.util.Locale;
-import javax.sound.sampled.Clip;
-import javax.sound.sampled.AudioInputStream;
-import javax.sound.sampled.AudioSystem;
-import org.jsoup.nodes.Document;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Element;
-import java.io.BufferedReader;
-import java.net.URLEncoder;
-import org.openqa.selenium.NoSuchWindowException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import javax.swing.JSplitPane;
 import javax.swing.JList;
-import javax.swing.event.ListSelectionListener;
-import javax.swing.event.ListSelectionEvent;
 import javax.swing.JTextArea;
-import java.awt.Window;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.awt.image.BufferedImage;
+import javax.swing.event.ChangeListener;
+import javax.swing.SwingUtilities;
 
 class PlaylistManager{
 	JScrollPane playlistScrollContainer = null;
@@ -91,8 +58,6 @@ class PlaylistManager{
 	String userID = null;
 
 	public void moveJSONSong(int from, int to){
-		
-		System.out.println("From " + from + "to " + to);
 		
 		ArrayList<JSONObject> JSONTracks = new ArrayList();
 		Iterator it = this.playlistJSON.iterator();
@@ -306,7 +271,6 @@ class PlaylistManager{
 		JSONObject responseJSON = new JSONObject(response);
 		
 		if(responseJSON.optJSONObject("error")!=null)return(false);
-		System.out.println(responseJSON.optJSONObject("error"));
 		
 		return(true);
 	}
@@ -318,27 +282,36 @@ class PlaylistManager{
 
 		JTextField playlistInput = new JTextField ();
 		playlistInput.addActionListener(e -> {
-
-			playlistInput.disable();		
-
-			if(validatePlaylistID(playlistInput.getText())){
-				man.playlistJSON = generateCustomJSON(playlistInput.getText());
-				populate(man);
-				prompt.dispose();
-			} else {
-				JOptionPane.showMessageDialog(null, "Invalid Playlist ID", "Error", JOptionPane.ERROR_MESSAGE);
-			}
-
-			playlistInput.enable();
+			
+			SwingWorker sw = new SwingWorker(){
+				@Override
+				protected String doInBackground(){
+					playlistInput.disable();	
+					if(validatePlaylistID(playlistInput.getText())){
+						man.playlistJSON = generateCustomJSON(playlistInput.getText());
+						populate(man);
+						prompt.dispose();
+					} else {
+						JOptionPane.showMessageDialog(null, "Invalid Playlist ID", "Error", JOptionPane.ERROR_MESSAGE);
+					}
+					
+					return("1");
+				}
+				
+				@Override
+				protected void done(){
+					playlistInput.enable();
+				}
+				
+			};
+			
+			sw.execute();
 		});
 
 		prompt.getContentPane().add(playlistInput, BorderLayout.CENTER);
-		
 		prompt.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-		
 		prompt.setLocationRelativeTo(null);
 		prompt.setResizable(false);
-
 		prompt.pack();
 		prompt.setVisible(true);
 	}
@@ -357,15 +330,7 @@ class PlaylistManager{
 			
 			
 			//progressBar
-			JProgressBar proBar = new JProgressBar(0,man.playlistJSON.length());
-
-			JFrame progressWindow = new JFrame("Progress Bar");
-			progressWindow.getContentPane().add(proBar, BorderLayout.CENTER);
-			progressWindow.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-			progressWindow.setLocationRelativeTo(null);
-			progressWindow.setResizable(false);
-			progressWindow.pack();
-			progressWindow.setVisible(true);
+			ProgressBarDialog pbd = new ProgressBarDialog("Loading Tracks", new JProgressBar(0,man.playlistJSON.length()));
 			
 			SwingWorker sw = new SwingWorker(){
 				@Override
@@ -375,7 +340,7 @@ class PlaylistManager{
 					
 					//Table Header - Visible Labels
 					Track header = new Track(man.playlist,true,null);
-					
+					c.weightx = 1;
 					c.gridx = 0;
 					c.insets = new Insets(0,3,0,3);
 					Data numHeaderLabel = new Data ("#", true,true,c, header);
@@ -385,6 +350,7 @@ class PlaylistManager{
 					
 					c = new GridBagConstraints();
 					c.gridx = 1;
+					c.weightx = 1;
 					c.insets = new Insets(0,3,0,3);
 					Data coverHeaderLabel = new Data("Cover",true,true,c, header);
 					coverHeaderLabel.setPreferredSize(new Dimension(100,100));
@@ -393,6 +359,7 @@ class PlaylistManager{
 					
 					c = new GridBagConstraints();
 					c.gridx = 2;
+					c.weightx = 1;
 					c.insets = new Insets(0,3,0,3);
 					Data trackNameHeaderLabel = new Data("Track",true,true,c, header);
 					trackNameHeaderLabel.setPreferredSize(new Dimension(150,150));
@@ -401,6 +368,7 @@ class PlaylistManager{
 					
 					c = new GridBagConstraints();
 					c.gridx = 3;
+					c.weightx = 1;
 					c.insets = new Insets(0,3,0,3);
 					Data artistNameHeaderLabel = new Data("Artists",true,true,c, header);
 					artistNameHeaderLabel.setPreferredSize(new Dimension(150,150));
@@ -482,6 +450,7 @@ class PlaylistManager{
 					c = new GridBagConstraints();
 					c.gridy = 0;
 					c.weightx = 1;
+					c.fill = GridBagConstraints.HORIZONTAL;
 					header.constraints = c;
 					man.playlist.add(header,c);
 			
@@ -493,11 +462,14 @@ class PlaylistManager{
 
 						try{
 							URL trackCoverUrl = new URL(currentTrack.getString("trackCoverURL"));
-							Image trackCoverImage = ImageIO.read(trackCoverUrl);
+							BufferedImage trackCoverImage = ImageIO.read(trackCoverUrl);
+							newTrack.setPalette(trackCoverImage);
+							
 							ImageIcon trackCover = new ImageIcon(trackCoverImage.getScaledInstance(100,100,Image.SCALE_DEFAULT));
 							
 							c = new GridBagConstraints();
 							c.gridx = 0;
+							c.weightx = 1;
 							c.insets = new Insets(3,3,3,3);
 							Data numLabel = new Data (Integer.toString(i+1), false,true, c, newTrack);
 							numLabel.setPreferredSize(new Dimension(25,25));
@@ -505,6 +477,7 @@ class PlaylistManager{
 							
 							c = new GridBagConstraints();
 							c.gridx = 1;
+							c.weightx = 1;
 							c.insets = new Insets(3,3,3,3);
 							Data coverLabel = new Data(trackCover, false,true, c, newTrack);
 							coverLabel.setPreferredSize(new Dimension(100,100));
@@ -512,6 +485,7 @@ class PlaylistManager{
 							
 							c = new GridBagConstraints();
 							c.gridx = 2;
+							c.weightx = 1;
 							c.insets = new Insets(3,3,3,3);
 							Data trackNameLabel = new Data(currentTrack.getString("trackName"),false,true,c, newTrack);
 							trackNameLabel.setPreferredSize(new Dimension(150,150));
@@ -519,6 +493,7 @@ class PlaylistManager{
 							
 							c = new GridBagConstraints();
 							c.gridx = 3;
+							c.weightx = 1;
 							c.insets = new Insets(3,3,3,3);
 							Data artistNameLabel = new Data(currentTrack.getString("trackArtist"),false,true,c, newTrack);
 							artistNameLabel.setPreferredSize(new Dimension(150,150));
@@ -595,13 +570,15 @@ class PlaylistManager{
 							languageLabel.setPreferredSize(new Dimension(150,150));
 							newTrack.language = languageLabel;
 							
-							newTrack.setBorder(BorderFactory.createLineBorder(Color.black));
+						
 							
 							c = new GridBagConstraints();
 							c.gridy = i+1;
+							c.fill = GridBagConstraints.HORIZONTAL;
 							c.gridx = 0;
 							c.weightx = 1;
 							newTrack.constraints = c;
+							newTrack.setBorder(BorderFactory.createLineBorder(Color.BLACK));
 							man.playlist.add(newTrack,c);
 							
 							newTrack.initializeTrack();
@@ -611,15 +588,11 @@ class PlaylistManager{
 							e.printStackTrace();
 						}
 						
-						proBar.setValue(i);
-						proBar.repaint();
-						proBar.revalidate();
+						
+						pbd.incrementValue();
 						man.playlist.repaint();
 						man.playlist.revalidate();
 					}
-					
-					progressWindow.dispose();
-		
 					return ("");
 				}
 			
@@ -649,37 +622,41 @@ class PlaylistManager{
 	}
 
 	public static JSONArray getPlaylistTracks(String playlistID){
-		int offSet = 50;
-		int limit = 50;
+		int offSet = 0;
 		JSONArray allTracks = new JSONArray();
 		String response = APIHandler.getRequestResponse("https://api.spotify.com/v1/playlists/" + playlistID + "/tracks?limit=50");
 		JSONObject responseJSON = new JSONObject (response);
-		allTracks.putAll(responseJSON.getJSONArray("items"));
-		
 		int size = responseJSON.getInt("total");
-
+		
+		
+		ProgressBarDialog pbd = new ProgressBarDialog("Loading Songs From Spotify", new JProgressBar(0,size));
+		
 		while(offSet < size){
 			response = APIHandler.getRequestResponse("https://api.spotify.com/v1/playlists/" + playlistID + "/tracks?limit=50&offset=" + offSet);
 			responseJSON = new JSONObject (response);
 			allTracks.putAll(responseJSON.getJSONArray("items"));
 
 			offSet += 50;
+			pbd.setValue(offSet);
 		}
+		
 		return (allTracks);
 	}
 	
 	public static JSONArray generateCustomJSON(String playlistID){
-		
 		JSONArray spotifyPlaylist = getPlaylistTracks(playlistID);
 		
 		JSONArray customArray = new JSONArray();
 		int counter = 0;
+		
+		ProgressBarDialog pbd = new ProgressBarDialog("Reading Data From Spotify", new JProgressBar(0,spotifyPlaylist.length()));
 		
 		for(int i = 0; i < spotifyPlaylist.length(); i++){
 			JSONObject currentTrack = spotifyPlaylist.getJSONObject(i).getJSONObject("track");
 			JSONObject newJSON = parseTrackJSON(currentTrack);
 			
 			customArray.put(counter++,newJSON);
+			pbd.incrementValue();
 		}
 		APIHandler.loadMusicBrainz(customArray);
 		
@@ -732,6 +709,45 @@ class PlaylistManager{
 			newJSON.put("id",id);
 		}
 		return (newJSON);
+	}
+}
+
+class ProgressBarDialog extends JDialog{
+	JProgressBar pb;
+	
+	public ProgressBarDialog(String progress, JProgressBar pb){
+		super(new JFrame(), progress,false);
+		this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+		this.setSize(250,50);
+		this.setLocationRelativeTo(null);
+		this.pb = pb;
+		pb.setStringPainted(true);
+		pb.setString("0%");
+		
+		
+		pb.addChangeListener(e -> {
+			if(pb.getValue() >= pb.getMaximum()){
+				ProgressBarDialog.this.dispose();
+			}
+		});
+		this.add(pb,BorderLayout.CENTER);
+		this.setVisible(true);
+	}
+	
+	public void incrementValue(){
+		pb.setValue(pb.getValue()+1);
+		double percentage = (((double)pb.getValue())/pb.getMaximum())*100;
+		pb.setString(String.format("%2.0f%%",percentage));
+		this.repaint();
+		this.revalidate();
+	}
+	
+	public void setValue(int val){
+		pb.setValue(val);
+		double percentage = (((double)pb.getValue())/pb.getMaximum())*100;
+		pb.setString(String.format("%2.0f%%",percentage));
+		this.repaint();
+		this.revalidate();
 	}
 }
 

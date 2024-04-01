@@ -1,76 +1,36 @@
 package music.spotifyplaylistmanager;
 
-
-import java.net.URL;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpRequest.BodyPublishers;
-import java.net.http.HttpResponse;
-import java.io.OutputStream;
-import java.io.InputStream;
-import java.io.File;
-import java.io.FileWriter;
-import java.util.Scanner;
-import java.awt.BorderLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.Image;
-import java.util.Base64;
-import javax.imageio.ImageIO;
-import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JScrollPane;
-import javax.swing.JFileChooser;
-import javax.swing.JProgressBar;
-import javax.swing.SwingUtilities;
-import javax.swing.SwingWorker;
-import javax.swing.SwingConstants;
-import javax.swing.JButton;
-import javax.swing.JTextField;
 import javax.swing.JPanel;
-import javax.swing.JMenuBar;
-import javax.swing.JMenu;
 import javax.swing.JMenuItem;
-import javax.swing.BoxLayout;
-import javax.swing.ImageIcon;
 import org.json.JSONObject;
-import org.json.JSONArray;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.support.ui.WebDriverWait;
-import org.openqa.selenium.support.ui.ExpectedConditions;
-import java.time.Duration;
-import java.awt.Color;
 import java.awt.GridBagLayout;
 import java.awt.GridBagConstraints;
-import java.awt.Insets;
-import java.awt.event.MouseListener;
 import java.awt.event.MouseEvent;
-import java.awt.Dimension;
-import java.awt.Container;
-import java.awt.Component;
-import java.awt.Point;
-import java.util.List;
 import java.util.Arrays;
 import javax.swing.JPopupMenu;
-import javax.swing.JCheckBox;
-import org.jsoup.nodes.Document;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Element;
 import javax.sound.sampled.Clip;
-import javax.sound.sampled.AudioInputStream;
-import javax.sound.sampled.AudioSystem;
-import java.io.IOException;
 import java.util.Timer;
 import java.util.TimerTask;
-import javax.swing.JOptionPane;
 import java.util.ArrayList;
 import java.awt.datatransfer.StringSelection;
 import java.awt.Toolkit;
 import java.awt.event.MouseAdapter;
+import java.awt.Graphics;
+import java.awt.Color;
+import java.util.HashMap;
+import java.awt.image.BufferedImage;
+import java.util.Iterator;
+import java.util.Collection;
+import java.util.Set;
+import java.util.Map.Entry;
+import java.util.Random;
+import java.util.Comparator;
+import java.awt.GradientPaint;
+import java.awt.Graphics2D;
 
 class Track extends JPanel{
+	ArrayList<TrackColor> palette;
 	Playlist playlist;
 	JSONObject trackJSON;
 	Data num;
@@ -135,60 +95,151 @@ class Track extends JPanel{
 		this.isHeader = isHeader;
 		this.playlist = playlist;
 		
-		this.addMouseListener(new MouseAdapter(){
-			@Override
-			public void mouseEntered(MouseEvent e){
-				to = (Track) e.getComponent();
-			}
-			
-			@Override
-			public void mouseReleased(MouseEvent e){
-				Playlist thisPlaylist = Track.this.playlist;
-				
-				if(thisPlaylist.sortingData==null){
-					moveTrack(from, to);
-					from = null;
-					to = null;
-					thisPlaylist.repaint();
-					thisPlaylist.revalidate();
+		if(!this.isHeader){
+			this.addMouseListener(new MouseAdapter(){
+				@Override
+				public void mouseEntered(MouseEvent e){
+					to = (Track) e.getComponent();
 				}
-			}
-			
-			@Override
-			public void mousePressed(MouseEvent e){
-				from = (Track) e.getComponent();
-			}
-			
-			@Override
-			public void mouseClicked(MouseEvent e){
-				System.out.println(Track.this.getNum());
 				
-				int press = e.getButton();
-				
-				if(press==MouseEvent.BUTTON3){
-					showTrackMenu(e.getX(),e.getY());
-				} else {
-					TimerTask clickTimer = new TimerTask(){
-						@Override
-						public void run(){
-							clicks = 0;
-						}
-					};
+				@Override
+				public void mouseReleased(MouseEvent e){
+					Playlist thisPlaylist = Track.this.playlist;
 					
-					Timer clickInterval = new Timer();
-					clickInterval.schedule(clickTimer, 250);
-					
-					clicks++;
-					
-					if(clicks==2) {
-						Track.this.playlist.man.mp.setQueue(Track.this);
-						Track.this.playlist.man.mp.playTrack(Track.this);
+					if(thisPlaylist.sortingData==null){
+						moveTrack(from, to);
+						from = null;
+						to = null;
+						thisPlaylist.repaint();
+						thisPlaylist.revalidate();
 					}
 				}
-			}
-		});
+				
+				@Override
+				public void mousePressed(MouseEvent e){
+					from = (Track) e.getComponent();
+				}
+				
+				@Override
+				public void mouseClicked(MouseEvent e){
+					
+					int press = e.getButton();
+					
+					if(press==MouseEvent.BUTTON3){
+						showTrackMenu(e.getX(),e.getY());
+					} else {
+						TimerTask clickTimer = new TimerTask(){
+							@Override
+							public void run(){
+								clicks = 0;
+							}
+						};
+						
+						Timer clickInterval = new Timer();
+						clickInterval.schedule(clickTimer, 250);
+						
+						clicks++;
+						
+						if(clicks==2) {
+							Track.this.playlist.man.mp.setQueue(Track.this);
+							Track.this.playlist.man.mp.playTrack(Track.this);
+						}
+					}
+				}
+			});
+		}
 	}
 	
+	@Override
+	protected void paintComponent(Graphics g){
+		super.paintComponent(g);
+		
+		if(this.playlist!=null){
+			int x = this.getX();
+			int y = this.getY();
+			int width = this.getWidth();
+			int height = this.getHeight();
+			
+			Graphics2D g2 = (Graphics2D) g;
+			if(!this.isHeader) {
+				g2.setPaint(new GradientPaint(0,0,this.palette.get(0),width,height,this.palette.get(1)));
+				g2.fillRect(0,0,width,height);
+			}
+			
+		}
+		/* if(!this.isHeader){
+			for(int i = 0; i < width; i++){
+				for(int j = 0; j < height; j++){
+					g.setColor(this.palette.get(0));
+					g.drawRect(i,j,1,1);
+				}
+			}
+		} */
+	}
+	
+	public void setPalette(BufferedImage buff){
+		int height = buff.getHeight();
+		int width = buff.getWidth();
+		int range = 100;
+		int pixels = height * width;
+		HashMap<Integer,Integer> colorMap = new HashMap<>();
+		
+			for(int j = 0; j < width; j++){
+				int currentColor = buff.getRGB(j,j);
+				boolean newColor = true;
+				Object[] keys = colorMap.keySet().toArray();
+				
+				
+				
+				for(int i = 0; i < keys.length; i++){
+					if(newColor){
+						int currentColorComp = new Color((int)keys[i]).getRGB();
+						double diff = getEuclidDiff(new Color(currentColor),new Color(currentColorComp));
+						if(diff < range){
+							
+							//System.out.println(diff);
+							newColor = false;
+							colorMap.put(currentColorComp,colorMap.get(currentColorComp)+1);
+							
+						}
+					}
+				}
+					
+				if(newColor) colorMap.put(currentColor,colorMap.getOrDefault(currentColor,0)+1);
+				
+			}
+		
+		this.palette = new ArrayList<>();
+		
+		Iterator it = colorMap.entrySet().iterator();
+		while(it.hasNext()){
+			Entry<Integer, Integer> entry = (Entry<Integer,Integer>) it.next();
+			this.palette.add(new TrackColor(entry.getKey(),entry.getValue()));
+		}
+		
+		this.palette.sort(new Comparator<TrackColor>(){
+			@Override
+			public int compare(TrackColor a, TrackColor b){
+				return(Integer.compare(b.counter,a.counter));
+			}
+		});
+		
+		Iterator ita = this.palette.iterator();
+		
+		while(ita.hasNext()) {
+			TrackColor col = (TrackColor)ita.next();
+		}
+	}
+	
+	public double getEuclidDiff(Color a, Color b){
+		double returnValue = Math.sqrt(
+								Math.pow(a.getRed() - b.getRed(),2) + 
+								Math.pow(a.getGreen() - b.getGreen(),2) + 
+								Math.pow(a.getBlue() - b.getBlue(),2)
+							);
+		
+		return (returnValue);
+	}
 	
 	
 	public void showTrackMenu(int xPos, int yPos){
@@ -289,4 +340,14 @@ class Track extends JPanel{
 			}
 		}
 	}
+}
+
+class TrackColor extends Color{
+	int counter;
+	
+	public TrackColor(int rgb, int counter){
+		super(rgb);
+		this.counter = counter;
+	}
+	
 }
