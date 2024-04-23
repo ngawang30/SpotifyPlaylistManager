@@ -29,7 +29,7 @@ public class PlaylistComparator extends JDialog{
         this.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
 
         this.man = man;
-        this.contenders = new ArrayList(Arrays.asList(man.getPlaylist().getTracks()));
+        this.contenders = new ArrayList(Arrays.asList(man.getPlaylist().getLoadedTracks()));
 
         this.currentIndex = 0;
 
@@ -56,10 +56,6 @@ public class PlaylistComparator extends JDialog{
 
     public PlaylistManager getMan() {
         return man;
-    }
-
-    public void setMan(PlaylistManager man) {
-        this.man = man;
     }
 
     public ArrayList<Track> getContenders() {

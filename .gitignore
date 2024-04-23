@@ -2,3 +2,4 @@ target/
 temp.wav
 commands.txt
 cache.txt
+nbactions.xml

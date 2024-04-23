@@ -1,12 +1,15 @@
 package music.spotifyplaylistmanager;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonNull;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonPrimitive;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import javax.swing.SwingWorker;
-import org.json.JSONObject;
-import org.json.JSONArray;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.support.ui.WebDriverWait;
@@ -17,22 +20,23 @@ import java.net.URLEncoder;
 import org.openqa.selenium.NoSuchWindowException;
 import javax.swing.JProgressBar;
 import java.util.Iterator;
+import java.util.Optional;
 
 public class APIHandler {
 
-    public static JSONArray getPlaylistTracks(String playlistID) {
+    public static JsonArray getJsonPlaylistTracks(String playlistID) {
         int offSet = 0;
-        JSONArray allTracks = new JSONArray();
+        JsonArray allTracks = new JsonArray();
         String response = APIHandler.getRequestResponse("https://api.spotify.com/v1/playlists/" + playlistID + "/tracks?limit=50");
-        JSONObject responseJSON = new JSONObject(response);
-        int size = responseJSON.getInt("total");
+        JsonObject responseJSON = JsonParser.parseString(response).getAsJsonObject();
+        int size = responseJSON.get("total").getAsInt();
 
         ProgressBarDialog pbd = new ProgressBarDialog("Loading Songs From Spotify", new JProgressBar(0, size));
 
         while (offSet < size) {
             response = APIHandler.getRequestResponse("https://api.spotify.com/v1/playlists/" + playlistID + "/tracks?limit=50&offset=" + offSet);
-            responseJSON = new JSONObject(response);
-            allTracks.putAll(responseJSON.getJSONArray("items"));
+            responseJSON = JsonParser.parseString(response).getAsJsonObject();
+            allTracks.addAll(responseJSON.getAsJsonArray("items"));
 
             offSet += 50;
             pbd.setValue(offSet);
@@ -41,33 +45,33 @@ public class APIHandler {
         return (allTracks);
     }
 
-    public static JSONArray generateCustomJSON(String playlistID) {
-        JSONArray spotifyPlaylist = getPlaylistTracks(playlistID);
-        JSONArray cache = new JSONArray(PlaylistManager.readFromCache());
-        JSONArray customArray = new JSONArray();
+    public static JsonArray generateCustomJSON(String playlistID) {
+        JsonArray spotifyPlaylist = getJsonPlaylistTracks(playlistID);
+        JsonArray cache = JsonParser.parseString(PlaylistManager.readFromCache()).getAsJsonArray();
+        JsonArray customArray = new JsonArray();
         int counter = 0;
-        ProgressBarDialog pbd = new ProgressBarDialog("Generating Track Information", new JProgressBar(0, spotifyPlaylist.length()));
+        ProgressBarDialog pbd = new ProgressBarDialog("Generating Track Information", new JProgressBar(0, spotifyPlaylist.size()));
 
-        for (int i = 0; i < spotifyPlaylist.length(); i++) {
-            JSONObject currentTrack = spotifyPlaylist.getJSONObject(i).getJSONObject("track");
+        for (int i = 0; i < spotifyPlaylist.size(); i++) {
+            JsonObject currentTrack = spotifyPlaylist.get(i).getAsJsonObject().get("track").getAsJsonObject();
 
             boolean inCache = false;
             Iterator it = cache.iterator();
 
             while (it.hasNext() && !inCache) {
-                JSONObject comTrack = (JSONObject) it.next();
+                JsonObject comTrack = (JsonObject) it.next();
                 //TrackName + Artist = key
-                String comOne = comTrack.getString("trackName") + comTrack.getString("trackArtist");
-                String comTwo = currentTrack.getString("name") + currentTrack.getJSONArray("artists").getJSONObject(0).getString("name");
+                String comOne = comTrack.get("trackName").getAsString() + comTrack.get("trackArtist").getAsString();
+                String comTwo = currentTrack.get("name").getAsString() + currentTrack.getAsJsonArray("artists").get(0).getAsJsonObject().get("name").getAsString();
                 if (comOne.equals(comTwo)) {
                     inCache = true;
-                    customArray.put(counter++, comTrack);
+                    customArray.add(comTrack);
                 }
             }
 
             if (!inCache && !isNullTrack(currentTrack)) {
                 currentTrack = refineTrack(currentTrack);
-                customArray.put(counter++, currentTrack);
+                customArray.add(currentTrack);
             }
 
             pbd.incrementValue();
@@ -76,75 +80,77 @@ public class APIHandler {
         return (customArray);
     }
 
-    public static boolean isNullTrack(JSONObject track) {
-        if (track.getJSONObject("album").getString("release_date").equals("0000")) {
+    public static boolean isNullTrack(JsonObject track) {
+        if (track.getAsJsonObject("album").get("release_date").equals("0000")) {
             return (true);
         } else {
             return (false);
         }
     }
 
-    public static JSONObject refineTrack(JSONObject unrefinedTrack) {
+    public static JsonObject refineTrack(JsonObject unrefinedTrack) {
         System.out.println(unrefinedTrack);
-        JSONObject refinedTrack = parseSpotifyInfo(unrefinedTrack);
+        JsonObject refinedTrack = parseSpotifyInfo(unrefinedTrack);
         parseMusicBrainzInfo(refinedTrack);
         return (refinedTrack);
     }
 
-    public static JSONObject parseSpotifyInfo(JSONObject currentTrack) {
-        JSONObject newJSON = new JSONObject();
+    public static JsonObject parseSpotifyInfo(JsonObject currentTrack) {
+        JsonObject newJSON = new JsonObject();
 
-        String trackCoverURL = currentTrack.getJSONObject("album").getJSONArray("images").getJSONObject(0).getString("url");
-        newJSON.put("trackCoverURL", trackCoverURL);
+        String trackCoverURL = currentTrack.getAsJsonObject("album").getAsJsonArray("images").get(0).getAsJsonObject().get("url").getAsString();
+        newJSON.add("trackCoverURL", new JsonPrimitive(trackCoverURL));
 
-        String trackName = currentTrack.getString("name");
-        newJSON.put("trackName", trackName);
+        System.out.println("123");
 
-        String trackArtist = currentTrack.getJSONArray("artists").getJSONObject(0).getString("name");
-        newJSON.put("trackArtist", trackArtist);
+        String trackName = currentTrack.get("name").getAsString();
+        newJSON.add("trackName", new JsonPrimitive(trackName));
 
-        String album = currentTrack.getJSONObject("album").getString("name");
-        newJSON.put("album", album);
+        String trackArtist = currentTrack.getAsJsonArray("artists").get(0).getAsJsonObject().get("name").getAsString();
+        newJSON.add("trackArtist", new JsonPrimitive(trackArtist));
 
-        String releasedDate = currentTrack.getJSONObject("album").getString("release_date");
-        newJSON.put("releasedDate", releasedDate);
+        String album = currentTrack.getAsJsonObject("album").get("name").getAsString();
+        newJSON.add("album", new JsonPrimitive(album));
 
-        int durationInMs = currentTrack.getInt("duration_ms");
+        String releasedDate = currentTrack.getAsJsonObject("album").get("release_date").getAsString();
+        newJSON.add("releasedDate", new JsonPrimitive(releasedDate));
+
+        int durationInMs = currentTrack.get("duration_ms").getAsInt();
         int durationInSeconds = (durationInMs / 1000);
         String durationInSecondsString = String.valueOf(durationInSeconds);
-        newJSON.put("durationInSeconds", durationInSecondsString);
+        newJSON.add("durationInSeconds", new JsonPrimitive(durationInSecondsString));
 
-        int duration = currentTrack.getInt("duration_ms");
+        int duration = currentTrack.get("duration_ms").getAsInt();
         int min = (duration / 1000 / 60);
         int sec = (duration / 1000 % 60);
         String durationString = String.format("%02d:%02d", min, sec);
-        newJSON.put("duration", durationString);
+        newJSON.add("duration", new JsonPrimitive(durationString));
 
-        int popularity = currentTrack.getInt("popularity");
-        newJSON.put("popularity", String.valueOf(popularity));
+        int popularity = currentTrack.get("popularity").getAsInt();
+        newJSON.add("popularity", new JsonPrimitive(String.valueOf(popularity)));
 
-        String artistID = currentTrack.getJSONArray("artists").getJSONObject(0).getString("id");
-        newJSON.put("artistID", artistID);
+        String artistID = currentTrack.getAsJsonArray("artists").get(0).getAsJsonObject().get("id").getAsString();
+        newJSON.add("artistID", new JsonPrimitive(artistID));
 
-        String explicit = String.valueOf(currentTrack.getBoolean("explicit"));
-        newJSON.put("explicit", explicit);
+        String explicit = String.valueOf(currentTrack.get("explicit"));
+        newJSON.add("explicit", new JsonPrimitive(explicit));
 
-        String isrc = currentTrack.getJSONObject("external_ids").getString("isrc");
-        newJSON.put("isrc", isrc);
+        String isrc = currentTrack.getAsJsonObject("external_ids").get("isrc").getAsString();
+        newJSON.add("isrc", new JsonPrimitive(isrc));
 
-        String id = currentTrack.getString("id");
-        newJSON.put("id", id);
+        String id = currentTrack.get("id").getAsString();
+        newJSON.add("id", new JsonPrimitive(id));
         return (newJSON);
     }
 
-    public static void parseMusicBrainzInfo(JSONObject currentTrack) {
+    public static void parseMusicBrainzInfo(JsonObject currentTrack) {
         int rate = 1500;
-        JSONObject backupTrack = new JSONObject(currentTrack.toString());
+        JsonObject backupTrack = JsonParser.parseString(currentTrack.toString()).getAsJsonObject();
 
         try {
             //Request 1
 
-            String query = "query=" + URLEncoder.encode("ANDrecording:\"" + (currentTrack.getString("trackName") + "\"ANDartist:\"" + currentTrack.getString("trackArtist") + "\"ANDrelease:\"" + currentTrack.getString("album")) + "\"", "UTF-8");
+            String query = "query=" + URLEncoder.encode("ANDrecording:\"" + (currentTrack.get("trackName") + "\"ANDartist:\"" + currentTrack.get("trackArtist") + "\"ANDrelease:\"" + currentTrack.get("album")) + "\"", "UTF-8");
 
             HttpRequest musicBrainzRequest = HttpRequest.newBuilder()
                     .uri(new URI("https://musicbrainz.org/ws/2/recording?" + query))
@@ -153,63 +159,70 @@ public class APIHandler {
                     .build();
 
             HttpResponse<String> response = HttpClient.newHttpClient().send(musicBrainzRequest, HttpResponse.BodyHandlers.ofString());
-            JSONObject newBrainz = new JSONObject(response.body());
+            Optional<JsonObject> newBrainz = Optional.of(JsonParser.parseString(response.body()).getAsJsonObject());
 
-            String brainzRecordingID = newBrainz.getJSONArray("recordings").getJSONObject(0).getString("id");
-            currentTrack.put("brainzRecordingID", brainzRecordingID);
+            newBrainz.map(data -> data.get("recordings"))
+                    .map(data -> data.isJsonNull() ? JsonNull.INSTANCE : data.getAsJsonArray().get(0))
+                    .map(data -> data.isJsonNull() ? JsonNull.INSTANCE : data.getAsJsonObject().get("id"))
+                    .ifPresent(data -> currentTrack.add("brainzRecordingID", data.isJsonNull() ? JsonParser.parseString("-") : data));
 
-            String brainzArtistID = newBrainz.getJSONArray("recordings").getJSONObject(0).getJSONArray("artist-credit").getJSONObject(0).getJSONObject("artist").getString("id");
-            currentTrack.put("brainzArtistID", brainzArtistID);
+            newBrainz.map(data -> data.get("recordings"))
+                    .map(data -> data.isJsonNull() ? JsonNull.INSTANCE : data.getAsJsonArray().get(0))
+                    .map(data -> data.isJsonNull() ? JsonNull.INSTANCE : data.getAsJsonObject().get("artist-credit"))
+                    .map(data -> data.isJsonNull() ? JsonNull.INSTANCE : data.getAsJsonArray().get(0))
+                    .map(data -> data.isJsonNull() ? JsonNull.INSTANCE : data.getAsJsonObject().get("artist"))
+                    .map(data -> data.isJsonNull() ? JsonNull.INSTANCE : data.getAsJsonObject().get("id"))
+                    .ifPresent(data -> currentTrack.add("brainzArtistID", data.isJsonNull() ? JsonParser.parseString("-") : data));
 
             //API LimitCheck
             Thread.sleep(rate);
 
             //Request 2
             musicBrainzRequest = HttpRequest.newBuilder()
-                    .uri(new URI("https://musicbrainz.org/ws/2/artist/" + brainzArtistID))
+                    .uri(new URI("https://musicbrainz.org/ws/2/artist/" + currentTrack.get("brainzArtistID").getAsString()))
                     .headers("Accept", "application/json", "User-Agent", "SpotifyPlaylistManager ( ngawang30@gmail.com )")
                     .GET()
                     .build();
 
             response = HttpClient.newHttpClient().send(musicBrainzRequest, HttpResponse.BodyHandlers.ofString());
-            newBrainz = new JSONObject(response.body());
+            newBrainz = Optional.of(JsonParser.parseString(response.body()).getAsJsonObject());
 
-            String artistType = newBrainz.optString("type", "null");
-            currentTrack.put("artistType", artistType);
+            newBrainz.map(data -> data.get("type"))
+                    .ifPresent(data -> currentTrack.add("artistType", data.isJsonNull() ? JsonParser.parseString("-") : data));
 
-            String artistCountry = newBrainz.isNull("area") ? "null" : newBrainz.getJSONObject("area").getString("name");
-            currentTrack.put("artistCountry", artistCountry);
+            newBrainz.map(data -> data.get("area"))
+                    .map(data -> data.isJsonNull() ? JsonNull.INSTANCE : data.getAsJsonObject().get("name"))
+                    .ifPresent(data -> currentTrack.add("artistCountry", data.isJsonNull() ? JsonParser.parseString("-") : data));
 
-            String artistGender = newBrainz.isNull("gender") ? "null" : newBrainz.getString("gender");
-            currentTrack.put("artistGender", artistGender);
+            newBrainz.map(data -> data.get("gender"))
+                    .ifPresent(data -> currentTrack.add("artistGender", data.isJsonNull() ? JsonParser.parseString("-") : data));
 
-            String isDead = newBrainz.isNull("life-span") ? "null" : String.valueOf(newBrainz.getJSONObject("life-span").getBoolean("ended"));
-            currentTrack.put("isDead", isDead);
+            newBrainz.map(data -> data.get("life-span"))
+                    .map(data -> data.isJsonNull() ? JsonNull.INSTANCE : data.getAsJsonObject().get("ended"))
+                    .ifPresent(data -> currentTrack.add("isDead", data.isJsonNull() ? JsonParser.parseString("-") : data));
 
-            String subArea = newBrainz.isNull("begin_area") ? "null" : newBrainz.getJSONObject("begin_area").getString("name");
-            currentTrack.put("subArea", subArea);
+            newBrainz.map(data -> data.get("begin-area"))
+                    .map(data -> data.isJsonNull() ? JsonNull.INSTANCE : data.getAsJsonObject().get("name"))
+                    .ifPresent(data -> currentTrack.add("subArea", data.isJsonNull() ? JsonParser.parseString("-") : data));
 
             //API LimitCheck
             Thread.sleep(rate);
 
             //request 3
             musicBrainzRequest = HttpRequest.newBuilder()
-                    .uri(new URI("https://musicbrainz.org/ws/2/recording/" + brainzRecordingID + "?inc=releases"))
+                    .uri(new URI("https://musicbrainz.org/ws/2/recording/" + currentTrack.get("brainzRecordingID").getAsString() + "?inc=releases"))
                     .headers("Accept", "application/json", "User-Agent", "SpotifyPlaylistManager ( ngawang30@gmail.com )")
                     .GET()
                     .build();
 
             response = HttpClient.newHttpClient().send(musicBrainzRequest, HttpResponse.BodyHandlers.ofString());
-            newBrainz = new JSONObject(response.body());
+            newBrainz = Optional.of(JsonParser.parseString(response.body()).getAsJsonObject());
 
-            JSONObject languageRoot = newBrainz.getJSONArray("releases").optJSONObject(0);
-            String language;
-            if (languageRoot != null) {
-                language = languageRoot.isNull("language") ? "null" : (new Locale(newBrainz.getJSONArray("releases").getJSONObject(0).getJSONObject("text-representation").getString("language"))).getDisplayLanguage();
-            } else {
-                language = "null";
-            }
-            currentTrack.put("language", language);
+            newBrainz.map(data -> data.get("releases"))
+                    .map(data -> data.isJsonNull() ? JsonNull.INSTANCE : data.getAsJsonArray().get(0))
+                    .map(data -> data.isJsonNull() ? JsonNull.INSTANCE : data.getAsJsonObject().get("text-representation"))
+                    .map(data -> data.isJsonNull() ? JsonNull.INSTANCE : data.getAsJsonObject().get("language"))
+                    .ifPresent(data -> currentTrack.add("language", data.isJsonNull() ? JsonParser.parseString("-") : JsonParser.parseString(new Locale(data.getAsString()).toString())));
 
             //API LimitCheck
             Thread.sleep(rate);
@@ -243,7 +256,8 @@ public class APIHandler {
             HttpResponse<String> responseBody = HttpClient.newHttpClient().send(generalRequest, HttpResponse.BodyHandlers.ofString());
             response = responseBody.body();
 
-        } catch (Exception e) {}
+        } catch (Exception e) {
+        }
 
         return (response);
     }
@@ -310,7 +324,7 @@ public class APIHandler {
         } catch (Exception e) {
         }
 
-        String token = new JSONObject(response.body()).getString("access_token");
+        String token = JsonParser.parseString(response.body()).getAsJsonObject().get("access_token").getAsString();
 
         return (token);
     }

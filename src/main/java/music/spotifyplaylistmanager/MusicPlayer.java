@@ -23,6 +23,7 @@ import java.util.ArrayList;
 
 public class MusicPlayer extends JPanel {
 
+    private SwingWorker sw;
     private Clip clip;
     private JLabel songName;
     private JLabel artist;
@@ -35,8 +36,6 @@ public class MusicPlayer extends JPanel {
     public MusicPlayer() {
         this.setLayout(new GridBagLayout());
         
-        
-
         GridBagConstraints c = new GridBagConstraints();
         cover = new JLabel();
         c = new GridBagConstraints();
@@ -53,7 +52,6 @@ public class MusicPlayer extends JPanel {
         c.gridx = 0;
         c.gridy = 1;
         this.add(this.songName, c);
-        
         
         
         pb = new JProgressBar();
@@ -95,7 +93,6 @@ public class MusicPlayer extends JPanel {
         });
         this.add(skipBack, c);
         
-        
 
         JButton play = new JButton("⏸");
         play.addActionListener(e -> {
@@ -115,10 +112,7 @@ public class MusicPlayer extends JPanel {
         skip.setPreferredSize(new Dimension(60, 20));
         skip.setFocusPainted(false);
         skip.addActionListener(e -> {
-            int currentTrackIndex = queue.indexOf(loadedTrack);
-            if (queue.size() > queue.indexOf(loadedTrack)) {
-                this.loadTrack(queue.get(currentTrackIndex + 1));
-            }
+            MusicPlayer.this.nextTrack();
         });
         
         controls = new JPanel(new GridBagLayout());
@@ -204,7 +198,12 @@ public class MusicPlayer extends JPanel {
         this.pb = pb;
     }
     
-    
+    public void nextTrack(){
+        int currentTrackIndex = queue.indexOf(loadedTrack);
+        if (queue.size() > queue.indexOf(loadedTrack)) {
+            this.loadTrack(queue.get(currentTrackIndex + 1));
+        }
+    }
     
     public void removeControls(){
         this.remove(controls);
@@ -253,47 +252,58 @@ public class MusicPlayer extends JPanel {
         this.repaint();
         this.revalidate();
 
-        SwingWorker sw = new SwingWorker() {
+        if(sw != null) sw.cancel(true);
+        
+        sw = new SwingWorker() {
             @Override
             protected String doInBackground() {
-
-                try {
-                    ProcessBuilder pbu = new ProcessBuilder("yt-dlp", "-x", "--audio-format", "wav", song, "--force-overwrite", "-o", uniqueID + ".wav").directory(new File("./res/"));
-                    Process p = pbu.start();
-                    p.waitFor();
-
-                    File file = new File("./res/" +uniqueID + ".wav");
-                    file.deleteOnExit();
-                    try (AudioInputStream ais = AudioSystem.getAudioInputStream(file)) {
-                        clip = AudioSystem.getClip();
-                        clip.open(ais);
-                    }
-
-                    pb.setMaximum((int) clip.getMicrosecondLength());
-
+                synchronized(MusicPlayer.this){
                     try {
-                        while (clip != null) {
-                            Thread.sleep(1000);
-                            pb.setValue((int) clip.getMicrosecondPosition());
-                            pb.repaint();
-                            pb.revalidate();
+                        ProcessBuilder pbu = new ProcessBuilder("yt-dlp", "-x", "--audio-format", "wav", song, "--force-overwrite", "-o", uniqueID + ".wav").directory(new File("./res/temp/"));
+                        Process p = pbu.start();
+                        p.waitFor();
+
+                        File file = new File("./res/temp/" +uniqueID + ".wav");
+                        file.deleteOnExit();
+                        try (AudioInputStream ais = AudioSystem.getAudioInputStream(file)) {
+                            clip = AudioSystem.getClip();
+                            clip.open(ais);
                         }
-                    } catch (NullPointerException e) {
-                        pb.setValue(0);
+
+                        pb.setMaximum((int) clip.getMicrosecondLength());
+
+
+                        clip.start();
+
+                        try {
+                            while (clip != null) {
+
+                                pb.setValue((int) clip.getMicrosecondPosition());
+                                pb.repaint();
+                                pb.revalidate();
+                                
+                                if(clip.getFrameLength()==clip.getFramePosition()){
+                                    clip = null;
+                                }
+                            }
+                            
+                            MusicPlayer.this.nextTrack();
+                        } catch (NullPointerException e) {
+                            pb.setValue(0);
+                        }
+                    } catch (InterruptedException e) {
+                    } catch (Exception e){
+                        e.printStackTrace();
                     }
-                } catch (Exception e) {
-                    e.printStackTrace();
                 }
 
                 return ("");
             }
 
             @Override
-            protected void done() {
-
-            }
+            protected void done() {}
         };
-
+           
         sw.execute();
     }
     

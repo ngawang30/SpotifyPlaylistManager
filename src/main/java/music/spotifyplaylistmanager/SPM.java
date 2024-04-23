@@ -2,7 +2,8 @@ package music.spotifyplaylistmanager;
 
 public class SPM {
 
-    public static void main(String[] args){
-        new PlaylistManager().app(); 
+    //Three points of storage {Instance variable, JSONArray, GUI}
+    public static void main(String[] args) {
+        new PlaylistManager().app();
     }
 }

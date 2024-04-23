@@ -1,8 +1,8 @@
 package music.spotifyplaylistmanager;
 
+import com.google.gson.JsonObject;
 import javax.swing.JPanel;
 import javax.swing.JMenuItem;
-import org.json.JSONObject;
 import java.awt.GridBagLayout;
 import java.awt.GridBagConstraints;
 import java.awt.event.MouseEvent;
@@ -36,7 +36,7 @@ class Track extends JPanel {
     private PlaylistManager man;
     private ArrayList<TrackColor> palette;
     private Playlist playlist;
-    private JSONObject trackJSON;
+    private JsonObject trackJSON;
     private Data num;
     private Data cover;
     private Data explicit;
@@ -52,12 +52,11 @@ class Track extends JPanel {
     private Data trackName;
     private Data artist;
     private GridBagConstraints constraints;
-    private boolean header = false;
+    private boolean header;
     private static int clicks;
-    
 
     //Constructor for Recommendations
-    public Track(PlaylistManager man, JSONObject trackJSON) {
+    public Track(PlaylistManager man, JsonObject trackJSON) {
         this.man = man;
         this.trackJSON = trackJSON;
         this.setLayout(new GridBagLayout());
@@ -92,7 +91,7 @@ class Track extends JPanel {
     }
 
     //Constructor for Playlist
-    public Track(Playlist playlist, boolean isHeader, JSONObject trackJSON) {
+    public Track(Playlist playlist, boolean isHeader, JsonObject trackJSON) {
         this.trackJSON = trackJSON;
         this.setLayout(new GridBagLayout());
         this.header = isHeader;
@@ -286,11 +285,11 @@ class Track extends JPanel {
         this.playlist = playlist;
     }
 
-    public JSONObject getTrackJSON() {
+    public JsonObject getTrackJSON() {
         return trackJSON;
     }
 
-    public void setTrackJSON(JSONObject trackJSON) {
+    public void setTrackJSON(JsonObject trackJSON) {
         this.trackJSON = trackJSON;
     }
 
@@ -429,258 +428,261 @@ class Track extends JPanel {
     public static void setClicks(int clicks) {
         Track.clicks = clicks;
     }
-    
-    
-    
-    public static void populateHeaderTrack(Track header){
-                GridBagConstraints c = new GridBagConstraints();
-                c.gridx = 0;
-                c.weightx = 1;
-                c.insets = new Insets(0, 3, 0, 3);
-                Data numHeaderLabel = new Data("#", true, true, c, header);
-                numHeaderLabel.setPreferredSize(new Dimension(25, 50));
-                header.num = numHeaderLabel;
-                header.add(numHeaderLabel, c);
 
-                c = new GridBagConstraints();
-                c.gridx = 1;
-                c.weightx = 1;
-                c.insets = new Insets(0, 3, 0, 3);
-                Data coverHeaderLabel = new Data("Cover", true, true, c, header);
-                coverHeaderLabel.setPreferredSize(new Dimension(100, 50));
-                header.cover = coverHeaderLabel;
-                header.add(coverHeaderLabel, c);
-
-                c = new GridBagConstraints();
-                c.gridx = 2;
-                c.weightx = 1;
-                c.insets = new Insets(0, 3, 0, 3);
-                Data trackNameHeaderLabel = new Data("Track", true, true, c, header);
-                trackNameHeaderLabel.setPreferredSize(new Dimension(150, 50));
-                header.setTrackName(trackNameHeaderLabel);
-                header.add(trackNameHeaderLabel, c);
-
-                c = new GridBagConstraints();
-                c.gridx = 3;
-                c.weightx = 1;
-                c.insets = new Insets(0, 3, 0, 3);
-                Data artistNameHeaderLabel = new Data("Artists", true, true, c, header);
-                artistNameHeaderLabel.setPreferredSize(new Dimension(150, 50));
-                header.artist = artistNameHeaderLabel;
-                header.add(artistNameHeaderLabel, c);
-
-                c = new GridBagConstraints();
-                c.gridx = 4;
-                c.weightx = 1;
-                c.insets = new Insets(0, 3, 0, 3);
-                Data durationHeaderLabel = new Data("Duration", true, true, c, header);
-                durationHeaderLabel.setPreferredSize(new Dimension(150, 50));
-                header.duration = durationHeaderLabel;
-                header.add(durationHeaderLabel, c);
-
-                //Table Header - Invisible Labels
-                c = new GridBagConstraints();
-                c.gridx = 5;
-                c.weightx = 1;
-                c.insets = new Insets(0, 3, 0, 3);
-                Data releasedDateHeaderLabel = new Data("Released Date", true, false, c, header);
-                releasedDateHeaderLabel.setPreferredSize(new Dimension(150, 50));
-                header.releasedDate = releasedDateHeaderLabel;
-
-                c = new GridBagConstraints();
-                c.gridx = 6;
-                c.weightx = 1;
-                c.insets = new Insets(0, 3, 0, 3);
-                Data popularityLabelHeaderLabel = new Data("Popularity", true, false, c, header);
-                popularityLabelHeaderLabel.setPreferredSize(new Dimension(150, 50));
-                header.popularity = popularityLabelHeaderLabel;
-
-                c = new GridBagConstraints();
-                c.gridx = 7;
-                c.weightx = 1;
-                c.insets = new Insets(0, 3, 0, 3);
-                Data explicitLabelHeaderLabel = new Data("Explicit", true, false, c, header);
-                explicitLabelHeaderLabel.setPreferredSize(new Dimension(150, 50));
-                header.explicit = explicitLabelHeaderLabel;
-
-                c = new GridBagConstraints();
-                c.gridx = 8;
-                c.weightx = 1;
-                c.insets = new Insets(0, 3, 0, 3);
-                Data artistTypeLabelHeaderLabel = new Data("Artist Type", true, false, c, header);
-                artistTypeLabelHeaderLabel.setPreferredSize(new Dimension(150, 50));
-                header.artistType = artistTypeLabelHeaderLabel;
-
-                c = new GridBagConstraints();
-                c.gridx = 9;
-                c.weightx = 1;
-                c.insets = new Insets(0, 3, 0, 3);
-                Data artistCountryLabelHeaderLabel = new Data("Artist Country", true, false, c, header);
-                artistCountryLabelHeaderLabel.setPreferredSize(new Dimension(150, 50));
-                header.artistCountry = artistCountryLabelHeaderLabel;
-
-                c = new GridBagConstraints();
-                c.gridx = 10;
-                c.weightx = 1;
-                c.insets = new Insets(0, 3, 0, 3);
-                Data artistGenderLabelHeaderLabel = new Data("Gender", true, false, c, header);
-                artistGenderLabelHeaderLabel.setPreferredSize(new Dimension(150, 50));
-                header.artistGender = artistGenderLabelHeaderLabel;
-
-                c = new GridBagConstraints();
-                c.gridx = 11;
-                c.weightx = 1;
-                c.insets = new Insets(0, 3, 0, 3);
-                Data isDeadLabelHeaderLabel = new Data("Deceased", true, false, c, header);
-                isDeadLabelHeaderLabel.setPreferredSize(new Dimension(150, 50));
-                header.dead = isDeadLabelHeaderLabel;
-
-                c = new GridBagConstraints();
-                c.gridx = 12;
-                c.weightx = 1;
-                c.insets = new Insets(0, 3, 0, 3);
-                Data subAreaLabelHeaderLabel = new Data("Sub-Location", true, false, c, header);
-                subAreaLabelHeaderLabel.setPreferredSize(new Dimension(150, 50));
-                header.subArea = subAreaLabelHeaderLabel;
-
-                c = new GridBagConstraints();
-                c.gridx = 13;
-                c.weightx = 1;
-                c.insets = new Insets(0, 3, 0, 3);
-                Data languageLabelHeaderLabel = new Data("Language", true, false, c, header);
-                languageLabelHeaderLabel.setPreferredSize(new Dimension(150, 50));
-                header.language = languageLabelHeaderLabel;    
-    }
-    
-    public static void populateBodyTrack(Track track, int num){
-        
+    public static void populateHeaderTrack(Track header) {
         GridBagConstraints c = new GridBagConstraints();
         c.gridx = 0;
         c.weightx = 1;
-        c.insets = new Insets(3, 3, 3, 3);
-        Data numLabel = new Data(Integer.toString(num + 1), false, true, c, track);
-        numLabel.setPreferredSize(new Dimension(25, 25));
-        track.num = numLabel;
+        c.insets = new Insets(0, 3, 0, 3);
+        Data numHeaderLabel = new Data(Type.number, "#", true, c, header);
+        numHeaderLabel.setPreferredSize(new Dimension(25, 50));
+        header.num = numHeaderLabel;
+        header.add(numHeaderLabel, c);
 
         c = new GridBagConstraints();
         c.gridx = 1;
         c.weightx = 1;
-        c.insets = new Insets(3, 3, 3, 3);
-        Data coverLabel = new Data(track.getCoverImage(), false, true, c, track);
-        coverLabel.setPreferredSize(new Dimension(100, 100));
-        track.cover = coverLabel;
+        c.insets = new Insets(0, 3, 0, 3);
+        Data coverHeaderLabel = new Data(Type.cover, "Cover", true, c, header);
+        coverHeaderLabel.setPreferredSize(new Dimension(100, 50));
+        header.cover = coverHeaderLabel;
+        header.add(coverHeaderLabel, c);
 
         c = new GridBagConstraints();
         c.gridx = 2;
         c.weightx = 1;
-        c.insets = new Insets(3, 3, 3, 3);
-        Data trackNameLabel = new Data(track.trackJSON.getString("trackName"), false, true, c, track);
-        trackNameLabel.setPreferredSize(new Dimension(150, 150));
-        track.setTrackName(trackNameLabel);
+        c.insets = new Insets(0, 3, 0, 3);
+        Data trackNameHeaderLabel = new Data(Type.track, "Track", true, c, header);
+        trackNameHeaderLabel.setPreferredSize(new Dimension(150, 50));
+        header.setTrackName(trackNameHeaderLabel);
+        header.add(trackNameHeaderLabel, c);
 
         c = new GridBagConstraints();
         c.gridx = 3;
         c.weightx = 1;
-        c.insets = new Insets(3, 3, 3, 3);
-        Data artistNameLabel = new Data(track.trackJSON.getString("trackArtist"), false, true, c, track);
-        artistNameLabel.setPreferredSize(new Dimension(150, 150));
-        track.artist = artistNameLabel;
-        
+        c.insets = new Insets(0, 3, 0, 3);
+        Data artistNameHeaderLabel = new Data(Type.artist, "Artists", true, c, header);
+        artistNameHeaderLabel.setPreferredSize(new Dimension(150, 50));
+        header.artist = artistNameHeaderLabel;
+        header.add(artistNameHeaderLabel, c);
+
         c = new GridBagConstraints();
         c.gridx = 4;
         c.weightx = 1;
-        c.insets = new Insets(3, 3, 3, 3);
-        Data durationLabel = new Data(track.trackJSON.getString("duration"), false, true, c, track);
-        durationLabel.setPreferredSize(new Dimension(150, 150));
-        track.duration = durationLabel;
+        c.insets = new Insets(0, 3, 0, 3);
+        Data durationHeaderLabel = new Data(Type.duration, "Duration", true, c, header);
+        durationHeaderLabel.setPreferredSize(new Dimension(150, 50));
+        header.duration = durationHeaderLabel;
+        header.add(durationHeaderLabel, c);
 
-        //Hidden
+        //Table Header - Invisible Labels
         c = new GridBagConstraints();
         c.gridx = 5;
         c.weightx = 1;
-        c.insets = new Insets(3, 3, 3, 3);
-        Data releasedDateLabel = new Data(track.trackJSON.getString("releasedDate"), false, false, c, track);
-        releasedDateLabel.setPreferredSize(new Dimension(150, 150));
-        track.releasedDate = releasedDateLabel;
+        c.insets = new Insets(0, 3, 0, 3);
+        Data releasedDateHeaderLabel = new Data(Type.releasedData, "Released Date", true, c, header);
+        releasedDateHeaderLabel.setPreferredSize(new Dimension(150, 50));
+        header.releasedDate = releasedDateHeaderLabel;
 
         c = new GridBagConstraints();
         c.gridx = 6;
         c.weightx = 1;
-        c.insets = new Insets(3, 3, 3, 3);
-        Data popularityLabel = new Data(track.trackJSON.getString("popularity"), false, false, c, track);
-        popularityLabel.setPreferredSize(new Dimension(150, 150));
-        track.popularity = popularityLabel;
+        c.insets = new Insets(0, 3, 0, 3);
+        Data popularityLabelHeaderLabel = new Data(Type.popularity, "Popularity", true, c, header);
+        popularityLabelHeaderLabel.setPreferredSize(new Dimension(150, 50));
+        header.popularity = popularityLabelHeaderLabel;
 
         c = new GridBagConstraints();
         c.gridx = 7;
         c.weightx = 1;
-        c.insets = new Insets(3, 3, 3, 3);
-        Data explicitLabel = new Data(track.trackJSON.getString("explicit"), false, false, c, track);
-        explicitLabel.setPreferredSize(new Dimension(150, 150));
-        track.explicit = explicitLabel;
+        c.insets = new Insets(0, 3, 0, 3);
+        Data explicitLabelHeaderLabel = new Data(Type.explicit, "Explicit", true, c, header);
+        explicitLabelHeaderLabel.setPreferredSize(new Dimension(150, 50));
+        header.explicit = explicitLabelHeaderLabel;
 
         c = new GridBagConstraints();
         c.gridx = 8;
         c.weightx = 1;
-        c.insets = new Insets(3, 3, 3, 3);
-        Data artistTypeLabel = new Data(track.trackJSON.getString("artistType"), false, false, c, track);
-        artistTypeLabel.setPreferredSize(new Dimension(150, 150));
-        track.artistType = artistTypeLabel;
+        c.insets = new Insets(0, 3, 0, 3);
+        Data artistTypeLabelHeaderLabel = new Data(Type.artistType, "Artist Type", true, c, header);
+        artistTypeLabelHeaderLabel.setPreferredSize(new Dimension(150, 50));
+        header.artistType = artistTypeLabelHeaderLabel;
 
         c = new GridBagConstraints();
         c.gridx = 9;
         c.weightx = 1;
-        c.insets = new Insets(3, 3, 3, 3);
-        Data artistCountryLabel = new Data(track.trackJSON.getString("artistCountry"), false, false, c, track);
-        artistCountryLabel.setPreferredSize(new Dimension(150, 150));
-        track.artistCountry = artistCountryLabel;
+        c.insets = new Insets(0, 3, 0, 3);
+        Data artistCountryLabelHeaderLabel = new Data(Type.artistCountry, "Artist Country", true, c, header);
+        artistCountryLabelHeaderLabel.setPreferredSize(new Dimension(150, 50));
+        header.artistCountry = artistCountryLabelHeaderLabel;
 
         c = new GridBagConstraints();
         c.gridx = 10;
         c.weightx = 1;
-        c.insets = new Insets(3, 3, 3, 3);
-        Data artistGenderLabel = new Data(track.trackJSON.getString("artistGender"), false, false, c, track);
-        artistGenderLabel.setPreferredSize(new Dimension(150, 150));
-        track.artistGender = artistGenderLabel;
+        c.insets = new Insets(0, 3, 0, 3);
+        Data artistGenderLabelHeaderLabel = new Data(Type.artistGender, "Gender", true, c, header);
+        artistGenderLabelHeaderLabel.setPreferredSize(new Dimension(150, 50));
+        header.artistGender = artistGenderLabelHeaderLabel;
 
         c = new GridBagConstraints();
         c.gridx = 11;
         c.weightx = 1;
-        c.insets = new Insets(3, 3, 3, 3);
-        Data isDeadLabel = new Data(track.trackJSON.getString("isDead"), false, false, c, track);
-        isDeadLabel.setPreferredSize(new Dimension(150, 150));
-        track.dead = isDeadLabel;
+        c.insets = new Insets(0, 3, 0, 3);
+        Data isDeadLabelHeaderLabel = new Data(Type.deceased, "Deceased", true, c, header);
+        isDeadLabelHeaderLabel.setPreferredSize(new Dimension(150, 50));
+        header.dead = isDeadLabelHeaderLabel;
 
         c = new GridBagConstraints();
         c.gridx = 12;
         c.weightx = 1;
-        c.insets = new Insets(3, 3, 3, 3);
-        Data subAreaLabel = new Data(track.trackJSON.getString("subArea"), false, false, c, track);
-        subAreaLabel.setPreferredSize(new Dimension(150, 150));
-        track.subArea = subAreaLabel;
+        c.insets = new Insets(0, 3, 0, 3);
+        Data subAreaLabelHeaderLabel = new Data(Type.subArea, "Sub-Location", true, c, header);
+        subAreaLabelHeaderLabel.setPreferredSize(new Dimension(150, 50));
+        header.subArea = subAreaLabelHeaderLabel;
 
         c = new GridBagConstraints();
         c.gridx = 13;
         c.weightx = 1;
-        c.insets = new Insets(3, 3, 3, 3);
-        Data languageLabel = new Data(track.trackJSON.getString("language"), false, false, c, track);
-        languageLabel.setPreferredSize(new Dimension(150, 150));
-        track.language = languageLabel;
+        c.insets = new Insets(0, 3, 0, 3);
+        Data languageLabelHeaderLabel = new Data(Type.language, "Language", true, c, header);
+        languageLabelHeaderLabel.setPreferredSize(new Dimension(150, 50));
+        header.language = languageLabelHeaderLabel;
+    }
 
-        c = new GridBagConstraints();
-        c.gridy = num + 1;
-        c.fill = GridBagConstraints.HORIZONTAL;
-        c.gridx = 0;
-        c.weightx = 1;
-        track.constraints = c;
-        track.setBorder(BorderFactory.createLineBorder(Color.BLACK));
-        track.playlist.add(track, c);
+    public static void populateBodyTrack(Track track, int num) {
+
+        try {
+            GridBagConstraints c = new GridBagConstraints();
+            c.gridx = 0;
+            c.weightx = 1;
+            c.insets = new Insets(3, 3, 3, 3);
+            Data numLabel = new Data(Type.number, Integer.toString(num + 1), false, c, track);
+            numLabel.setPreferredSize(new Dimension(25, 25));
+            track.num = numLabel;
+
+            c = new GridBagConstraints();
+            c.gridx = 1;
+            c.weightx = 1;
+            c.insets = new Insets(3, 3, 3, 3);
+            Data coverLabel = new Data(Type.cover, track.getCoverImage(), false, c, track);
+            coverLabel.setPreferredSize(new Dimension(100, 100));
+            track.cover = coverLabel;
+
+            c = new GridBagConstraints();
+            c.gridx = 2;
+            c.weightx = 1;
+            c.insets = new Insets(3, 3, 3, 3);
+            Data trackNameLabel = new Data(Type.track, track.trackJSON.get("trackName").getAsString(), false, c, track);
+            trackNameLabel.setPreferredSize(new Dimension(150, 150));
+            track.setTrackName(trackNameLabel);
+
+            c = new GridBagConstraints();
+            c.gridx = 3;
+            c.weightx = 1;
+            c.insets = new Insets(3, 3, 3, 3);
+            Data artistNameLabel = new Data(Type.artist, track.trackJSON.get("trackArtist").getAsString(), false, c, track);
+            artistNameLabel.setPreferredSize(new Dimension(150, 150));
+            track.artist = artistNameLabel;
+
+            c = new GridBagConstraints();
+            c.gridx = 4;
+            c.weightx = 1;
+            c.insets = new Insets(3, 3, 3, 3);
+            Data durationLabel = new Data(Type.duration, track.trackJSON.get("duration").getAsString(), false, c, track);
+            durationLabel.setPreferredSize(new Dimension(150, 150));
+            track.duration = durationLabel;
+
+            //Hidden
+            c = new GridBagConstraints();
+            c.gridx = 5;
+            c.weightx = 1;
+            c.insets = new Insets(3, 3, 3, 3);
+            Data releasedDateLabel = new Data(Type.releasedData, track.trackJSON.get("releasedDate").getAsString(), false, c, track);
+            releasedDateLabel.setPreferredSize(new Dimension(150, 150));
+            track.releasedDate = releasedDateLabel;
+
+            c = new GridBagConstraints();
+            c.gridx = 6;
+            c.weightx = 1;
+            c.insets = new Insets(3, 3, 3, 3);
+            Data popularityLabel = new Data(Type.popularity, track.trackJSON.get("popularity").getAsString(), false, c, track);
+            popularityLabel.setPreferredSize(new Dimension(150, 150));
+            track.popularity = popularityLabel;
+
+            c = new GridBagConstraints();
+            c.gridx = 7;
+            c.weightx = 1;
+            c.insets = new Insets(3, 3, 3, 3);
+            Data explicitLabel = new Data(Type.explicit, track.trackJSON.get("explicit").getAsString(), false, c, track);
+            explicitLabel.setPreferredSize(new Dimension(150, 150));
+            track.explicit = explicitLabel;
+
+            c = new GridBagConstraints();
+            c.gridx = 8;
+            c.weightx = 1;
+            c.insets = new Insets(3, 3, 3, 3);
+            Data artistTypeLabel = new Data(Type.artistType, track.trackJSON.get("artistType").getAsString(), false, c, track);
+            artistTypeLabel.setPreferredSize(new Dimension(150, 150));
+            track.artistType = artistTypeLabel;
+
+            c = new GridBagConstraints();
+            c.gridx = 9;
+            c.weightx = 1;
+            c.insets = new Insets(3, 3, 3, 3);
+            Data artistCountryLabel = new Data(Type.artistCountry, track.trackJSON.get("artistCountry").getAsString(), false, c, track);
+            artistCountryLabel.setPreferredSize(new Dimension(150, 150));
+            track.artistCountry = artistCountryLabel;
+
+            c = new GridBagConstraints();
+            c.gridx = 10;
+            c.weightx = 1;
+            c.insets = new Insets(3, 3, 3, 3);
+            Data artistGenderLabel = new Data(Type.artistGender, track.trackJSON.get("artistGender").getAsString(), false, c, track);
+            artistGenderLabel.setPreferredSize(new Dimension(150, 150));
+            track.artistGender = artistGenderLabel;
+
+            c = new GridBagConstraints();
+            c.gridx = 11;
+            c.weightx = 1;
+            c.insets = new Insets(3, 3, 3, 3);
+            Data isDeadLabel = new Data(Type.deceased, track.trackJSON.get("isDead").getAsString(), false, c, track);
+            isDeadLabel.setPreferredSize(new Dimension(150, 150));
+            track.dead = isDeadLabel;
+
+            c = new GridBagConstraints();
+            c.gridx = 12;
+            c.weightx = 1;
+            c.insets = new Insets(3, 3, 3, 3);
+            Data subAreaLabel = new Data(Type.subArea, track.trackJSON.get("subArea").getAsString(), false, c, track);
+            subAreaLabel.setPreferredSize(new Dimension(150, 150));
+            track.subArea = subAreaLabel;
+
+            c = new GridBagConstraints();
+            c.gridx = 13;
+            c.weightx = 1;
+            c.insets = new Insets(3, 3, 3, 3);
+            Data languageLabel = new Data(Type.language, track.trackJSON.get("language").getAsString(), false, c, track);
+            languageLabel.setPreferredSize(new Dimension(150, 150));
+            track.language = languageLabel;
+
+            c = new GridBagConstraints();
+            c.gridy = num + 1;
+            c.fill = GridBagConstraints.HORIZONTAL;
+            c.gridx = 0;
+            c.weightx = 1;
+            track.constraints = c;
+            track.setBorder(BorderFactory.createLineBorder(Color.BLACK));
+            track.playlist.add(track, c);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
     }
 
     public ImageIcon getCoverImage() {
         ImageIcon trackCover = null;
         try {
-            URL trackCoverUrl = new URL(this.trackJSON.getString("trackCoverURL"));
+            URL trackCoverUrl = new URL(this.trackJSON.get("trackCoverURL").getAsString());
             BufferedImage trackCoverImage = ImageIO.read(trackCoverUrl);
             this.setPalette(trackCoverImage);
 
@@ -721,7 +723,7 @@ class Track extends JPanel {
 
         JMenuItem copyID = new JMenuItem("Copy Track ID");
         copyID.addActionListener(e -> {
-            StringSelection string = new StringSelection(this.trackJSON.getString("id"));
+            StringSelection string = new StringSelection(this.trackJSON.get("id").getAsString());
             Toolkit.getDefaultToolkit().getSystemClipboard().setContents(string, null);
         });
         pop.add(copyID);
@@ -732,15 +734,15 @@ class Track extends JPanel {
     }
 
     public String getNameString() {
-        return (this.trackJSON.getString("trackName"));
+        return (this.trackJSON.get("trackName").getAsString());
     }
 
     public String getArtistString() {
-        return (this.trackJSON.getString("trackArtist"));
+        return (this.trackJSON.get("trackArtist").getAsString());
     }
 
     public String getIDInt() {
-        return (this.trackJSON.getString("id"));
+        return (this.trackJSON.get("id").getAsString());
     }
 
     public void setY(int y) {
@@ -772,19 +774,19 @@ class Track extends JPanel {
         return (row);
     }
 
-    public Data findData(int gridX) {
+    public Data findData(Type type) {
         Data[] data = this.getRow();
-        Data toFind = null;
 
-        for (Data data1 : data) {
-            if (data1.getConstraints().gridx == gridX) {
-                return data1;
+        for (Data datum : data) {
+            if (datum.getType() == type) {
+                return (datum);
             }
         }
 
-        return (toFind);
+        return (null);
     }
 
+    //add columns meant to be visiable from the getgo
     public void initializeTrack() {
         this.add(this.num, this.num.getConstraints());
         this.add(this.cover, this.cover.getConstraints());
@@ -813,7 +815,7 @@ class Track extends JPanel {
     public void insertTrack(Track to) {
         if (this != to && this != null && to != null) {
             Playlist playlist = this.playlist;
-            ArrayList<Track> tracks = new ArrayList(Arrays.asList(this.playlist.getTracks()));
+            ArrayList<Track> tracks = new ArrayList(Arrays.asList(this.playlist.getLoadedTracks()));
             boolean topToBottom = this.getNumInt() < to.getNumInt();
 
             this.playlist.getMan().insertJSONTrack(this.getNumInt() - 1, to.getNumInt() - 1);
@@ -826,7 +828,7 @@ class Track extends JPanel {
                 tracks.add(tracks.indexOf(to), this);
             }
 
-            playlist.cheapLoad(tracks);
+            playlist.cheapLoad(tracks, true);
         }
     }
 }

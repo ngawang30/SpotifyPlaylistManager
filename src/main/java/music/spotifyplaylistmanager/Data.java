@@ -16,29 +16,29 @@ import java.awt.Color;
 class Data extends JLabel implements MouseListener {
 
     private Track track;
-    private int sortStage = 0;
+    private Type type;
+    private int sortStage;
     private boolean header;
-    private boolean visible;
     private GridBagConstraints constraints;
     private static Data start;
     private static Data end;
 
-    public Data(String value, boolean isHeader, boolean visible, GridBagConstraints constraints, Track track) {
+    public Data(Type type, String value, boolean isHeader, GridBagConstraints constraints, Track track) {
         super(value);
         this.setForeground(Color.WHITE);
-        this.visible = visible;
         this.track = track;
         this.header = isHeader;
+        this.type = type;
         if (isHeader) {
             this.addMouseListener(this);
         }
         this.constraints = constraints;
     }
 
-    public Data(ImageIcon picture, boolean isHeader, boolean visible, GridBagConstraints constraints, Track track) {
+    public Data(Type type, ImageIcon picture, boolean isHeader, GridBagConstraints constraints, Track track) {
         super(picture);
-        this.visible = visible;
         this.track = track;
+        this.type = type;
         this.header = isHeader;
         this.constraints = constraints;
     }
@@ -90,8 +90,8 @@ class Data extends JLabel implements MouseListener {
         return track;
     }
 
-    public void setTrack(Track track) {
-        this.track = track;
+    public Type getType() {
+        return type;
     }
 
     public int getSortStage() {
@@ -106,24 +106,8 @@ class Data extends JLabel implements MouseListener {
         return header;
     }
 
-    public void setHeader(boolean isHeader) {
-        this.header = isHeader;
-    }
-
-    public boolean isVisible() {
-        return visible;
-    }
-
-    public void setVisible(boolean isVisible) {
-        this.visible = isVisible;
-    }
-
     public GridBagConstraints getConstraints() {
         return constraints;
-    }
-
-    public void setConstraints(GridBagConstraints constraints) {
-        this.constraints = constraints;
     }
 
     public static Data getStart() {
@@ -218,18 +202,23 @@ class Data extends JLabel implements MouseListener {
         }
     }
 
+    @Override
+    public String toString() {
+        return (this.getText());
+    }
+
     public Data[] generateColumnArray() {
         Playlist playlist = this.track.getPlaylist();
 
         Component[] tracks = playlist.getComponents();
 
-        int pos = this.constraints.gridx;
+        Type type = this.type;
         Data[] column = new Data[tracks.length];
         int counter = 0;
 
         for (Component track1 : tracks) {
             Track currentTrack = (Track) track1;
-            column[counter++] = currentTrack.findData(pos);
+            column[counter++] = currentTrack.findData(type);
         }
 
         return (column);
@@ -237,17 +226,21 @@ class Data extends JLabel implements MouseListener {
 
     public static void moveColumn(Container playlist) {
         if (start.header && end.header) {
-            int startX = Data.start.constraints.gridx;
-            int endX = Data.end.constraints.gridx;
+            Type startType = Data.start.type;
+            Type endType = Data.end.type;
+            Track header = ((Playlist) playlist).getMan().getHeader();
 
             Component[] tracks = playlist.getComponents();
 
             for (Component com : tracks) {
                 Track currentTrack = (Track) com;
-                Data tempOne = currentTrack.findData(startX);
-                Data tempTwo = currentTrack.findData(endX);
+                Data tempOne = currentTrack.findData(startType);
+                Data tempTwo = currentTrack.findData(endType);
                 swapDataX(currentTrack, tempOne, tempTwo);
             }
+
+            swapDataX(header, header.findData(startType), header.findData(endType));
+
         }
     }
 
@@ -315,15 +308,52 @@ class Data extends JLabel implements MouseListener {
         pop.revalidate();
         pop.show(this, xPos, yPos);
     }
+}
+
+enum Type {
+    number(false, true),
+    cover(false, true),
+    track(true, true),
+    artist(true, true),
+    releasedData(false, false),
+    duration(false, true),
+    popularity(false, false),
+    explicit(true, false),
+    artistType(true, false),
+    artistCountry(true, false),
+    artistGender(true, false),
+    subArea(true, false),
+    language(true, false),
+    deceased(true, false);
+
+    private final boolean supportsFilter;
+    private boolean visible;
+
+    private Type(boolean supportsFilter, boolean visible) {
+        this.supportsFilter = supportsFilter;
+        this.visible = visible;
+    }
+
+    public boolean isSupportsFilter() {
+        return supportsFilter;
+    }
+
+    public boolean isVisible() {
+        return visible;
+    }
+
+    public void setVisible(boolean visible) {
+        this.visible = visible;
+    }
 
 }
 
 class ColumnCheckBox extends JCheckBox {
 
     public ColumnCheckBox(String name, Data columnData) {
-        super(name, columnData.isVisible());
+        super(name, columnData.getType().isVisible());
         this.addActionListener(e -> {
-            columnData.setVisible(!columnData.isVisible());
+            columnData.getType().setVisible(!columnData.getType().isVisible());
             columnData.getTrack().getPlaylist().toggleColumn(columnData);
         });
     }

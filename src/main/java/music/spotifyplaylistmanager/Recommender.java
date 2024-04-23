@@ -1,5 +1,8 @@
 package music.spotifyplaylistmanager;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import java.net.URL;
 import java.awt.BorderLayout;
 import java.awt.Image;
@@ -12,8 +15,6 @@ import javax.swing.JButton;
 import javax.swing.JTextField;
 import javax.swing.JPanel;
 import javax.swing.ImageIcon;
-import org.json.JSONObject;
-import org.json.JSONArray;
 import java.awt.Color;
 import javax.swing.BorderFactory;
 import java.awt.GridBagLayout;
@@ -32,15 +33,15 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import javax.swing.JDialog;
 
-public class Recommender extends JDialog{
+public class Recommender extends JDialog {
 
     private PlaylistManager man;
-    private static JSONArray RecommendationsJSON;
+    private static JsonArray RecommendationsJSON;
     private JScrollPane mainScroll;
-    private static JPanel mainPanel;
+    private JPanel mainPanel;
 
     public Recommender(PlaylistManager man) {
-        super(man.getFrame(),"Recommendation Generator");
+        super(man.getFrame(), "Recommendation Generator");
         this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         this.setSize(500, 500);
         this.setLocationRelativeTo(man.getFrame());
@@ -186,7 +187,7 @@ public class Recommender extends JDialog{
                             query += in.queryAddition;
                         }
                     }
-                    RecommendationsJSON = generateRecommendationJSONArray(APIHandler.getRequestResponse(query));
+                    RecommendationsJSON = generateRecommendationJsonArray(APIHandler.getRequestResponse(query));
 
                     populate(man);
 
@@ -223,15 +224,11 @@ public class Recommender extends JDialog{
         return man;
     }
 
-    public void setMan(PlaylistManager man) {
-        this.man = man;
-    }
-
-    public static JSONArray getRecommendationsJSON() {
+    public static JsonArray getRecommendationsJSON() {
         return RecommendationsJSON;
     }
 
-    public static void setRecommendationsJSON(JSONArray RecommendationsJSON) {
+    public static void setRecommendationsJSON(JsonArray RecommendationsJSON) {
         Recommender.RecommendationsJSON = RecommendationsJSON;
     }
 
@@ -243,14 +240,14 @@ public class Recommender extends JDialog{
         this.mainScroll = mainScroll;
     }
 
-    public static JPanel getMainPanel() {
+    public JPanel getMainPanel() {
         return mainPanel;
     }
 
-    public static void setMainPanel(JPanel mainPanel) {
-        Recommender.mainPanel = mainPanel;
+    public void setMainPanel(JPanel mainPanel) {
+        this.mainPanel = mainPanel;
     }
-    
+
     public static void toggleSettings(JDialog dialog, Component one, Component two) {
         if (dialog.isAncestorOf(one)) {
             dialog.remove(one);
@@ -269,14 +266,14 @@ public class Recommender extends JDialog{
         mainScroll = new JScrollPane(mainPanel);
         mainScroll.getVerticalScrollBar().setUnitIncrement(50);
 
-        ProgressBarDialog pbd = new ProgressBarDialog("Loading Recommendations", new JProgressBar(0, RecommendationsJSON.length()));
+        ProgressBarDialog pbd = new ProgressBarDialog("Loading Recommendations", new JProgressBar(0, RecommendationsJSON.size()));
 
-        for (int i = 0; i < RecommendationsJSON.length(); i++) {
+        for (int i = 0; i < RecommendationsJSON.size(); i++) {
             ImageIcon trackCover = null;
-            JSONObject currentTrack = RecommendationsJSON.getJSONObject(i);
+            JsonObject currentTrack = RecommendationsJSON.get(i).getAsJsonObject();
 
             try {
-                URL trackCoverUrl = new URL(currentTrack.getString("trackCoverURL"));
+                URL trackCoverUrl = new URL(currentTrack.get("trackCoverURL").getAsString());
                 Image trackCoverImage = ImageIO.read(trackCoverUrl);
                 trackCover = new ImageIcon(trackCoverImage.getScaledInstance(100, 100, Image.SCALE_DEFAULT));
             } catch (Exception e) {
@@ -295,12 +292,12 @@ public class Recommender extends JDialog{
             track.add(trackCoverLabel, c);
 
             c.gridx = 2;
-            JLabel trackNameLabel = new JLabel(currentTrack.getString("trackName"));
+            JLabel trackNameLabel = new JLabel(currentTrack.get("trackName").getAsString());
             trackNameLabel.setPreferredSize(new Dimension(150, 150));
             track.add(trackNameLabel, c);
 
             c.gridx = 3;
-            JLabel artistLabel = new JLabel(currentTrack.getString("trackArtist"));
+            JLabel artistLabel = new JLabel(currentTrack.get("trackArtist").getAsString());
             artistLabel.setPreferredSize(new Dimension(150, 150));
             track.add(artistLabel, c);
 
@@ -311,12 +308,12 @@ public class Recommender extends JDialog{
         }
     }
 
-    public static JSONArray generateRecommendationJSONArray(String response) {
-        JSONArray tracks = new JSONObject(response).getJSONArray("tracks");
-        JSONArray custom = new JSONArray();
+    public static JsonArray generateRecommendationJsonArray(String response) {
+        JsonArray tracks = new JsonObject().getAsJsonArray("tracks");
+        JsonArray custom = new JsonArray();
 
-        for (int i = 0; i < tracks.length(); i++) {
-            custom.put(APIHandler.parseSpotifyInfo(tracks.getJSONObject(i)));
+        for (int i = 0; i < tracks.size(); i++) {
+            custom.add((JsonElement) APIHandler.parseSpotifyInfo(tracks.get(i).getAsJsonObject()));
         }
 
         return (custom);

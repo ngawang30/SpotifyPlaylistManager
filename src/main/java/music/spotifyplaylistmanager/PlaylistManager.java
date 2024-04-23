@@ -3,10 +3,6 @@ package music.spotifyplaylistmanager;
 import com.formdev.flatlaf.FlatDarkLaf;
 import com.formdev.flatlaf.FlatLightLaf;
 import java.net.URL;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.io.File;
 import java.io.FileWriter;
 import java.util.Scanner;
@@ -24,8 +20,6 @@ import javax.swing.JTextField;
 import javax.swing.JPanel;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
-import org.json.JSONObject;
-import org.json.JSONArray;
 import java.awt.Dimension;
 import java.awt.Window;
 import javax.swing.JOptionPane;
@@ -34,8 +28,6 @@ import java.util.ArrayList;
 import javax.swing.JSplitPane;
 import javax.swing.JList;
 import javax.swing.JTextArea;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Collections;
@@ -45,29 +37,45 @@ import javax.swing.JFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.JRadioButtonMenuItem;
 import javax.swing.JScrollBar;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 
 class PlaylistManager {
 
     private JFrame frame;
-    private JScrollPane playlistScrollContainer = null;
+    private Filter filter;
+    private JScrollPane playlistScrollContainer;
     private Track header;
     private MusicPlayer musicPlayer;
-    private JSONArray playlistJSON = null;
-    private Playlist playlist = null;
-    private String userID = null;
-    private static String authorizedToken = null;
+    private JsonArray playlistJSON;
+    private Playlist playlist;
+    private String userID;
+    private static String authorizedToken;
+
+    public PlaylistManager(JFrame frame) {
+        this.frame = frame;
+    }
+
+    public PlaylistManager() {
+    }
 
     public JFrame getFrame() {
         return frame;
     }
-    
-    public void setFrame(JFrame frame) {
-        this.frame = frame;
+
+    public Filter getFilter() {
+        return filter;
     }
-    
+
+    public void setFilter(Filter filter) {
+        this.filter = filter;
+    }
+
     public JScrollPane getPlaylistScrollContainer() {
         return playlistScrollContainer;
     }
@@ -92,11 +100,11 @@ class PlaylistManager {
         this.musicPlayer = musicPlayer;
     }
 
-    public JSONArray getPlaylistJSON() {
+    public JsonArray getPlaylistJSON() {
         return playlistJSON;
     }
 
-    public void setPlaylistJSON(JSONArray playlistJSON) {
+    public void setPlaylistJSON(JsonArray playlistJSON) {
         this.playlistJSON = playlistJSON;
     }
 
@@ -123,8 +131,7 @@ class PlaylistManager {
     public static void setAuthorizedToken(String authorizedToken) {
         PlaylistManager.authorizedToken = authorizedToken;
     }
-    
-    
+
     public void app() {
         FlatDarkLaf.setup();
 
@@ -146,14 +153,13 @@ class PlaylistManager {
 //        } catch (Exception e){
 //            e.printStackTrace();
 //        }
-
-        PlaylistManager man = new PlaylistManager();
-        man.setPlaylist(new Playlist(man));
+        PlaylistManager man = new PlaylistManager(frame);
+        man.setPlaylist(new Playlist(man, null));
         man.setMusicPlayer(new MusicPlayer());
-        man.setFrame(frame);
         frame.add(man.getMusicPlayer(), BorderLayout.SOUTH);
-        
-        
+
+        man.setFilter(new Filter(man));
+
         JScrollPane playlistContainerScroll = new JScrollPane();
         playlistContainerScroll.setViewportView(man.getPlaylist());
         playlistContainerScroll.getVerticalScrollBar().setUnitIncrement(10);
@@ -251,6 +257,22 @@ class PlaylistManager {
         profile.add(status);
 
         //Menu Component //Recommendation
+        JRadioButtonMenuItem filter = new JRadioButtonMenuItem("Filter");
+        filter.addActionListener(e -> {
+            if (man.filter.isActive()) {
+                man.filter.setActive(false);
+
+                man.frame.remove(man.filter);
+            } else {
+                filter.setEnabled(true);
+                man.filter.setActive(true);
+                man.frame.add(man.filter, BorderLayout.NORTH);
+            }
+
+            man.frame.revalidate();
+            man.frame.repaint();
+        });
+
         JMenuItem recommendation = new JMenuItem("Recommendation");
         recommendation.addActionListener(e -> {
             if (man.isAuthorizedNotify()) {
@@ -266,6 +288,7 @@ class PlaylistManager {
         });
 
         JMenu functions = new JMenu("Functions");
+        functions.add(filter);
         functions.add(playlistTournament);
         functions.add(recommendation);
 
@@ -284,12 +307,14 @@ class PlaylistManager {
             if (lookAndFeel.equals("FlatLaf Dark")) {
                 FlatLightLaf.setup();
             } else {
-                FlatDarkLaf.setup();  
+                FlatDarkLaf.setup();
             }
-            
-                SwingUtilities.updateComponentTreeUI(frame);
-                
-                for(Window win: windows) SwingUtilities.updateComponentTreeUI(win);
+
+            SwingUtilities.updateComponentTreeUI(frame);
+
+            for (Window win : windows) {
+                SwingUtilities.updateComponentTreeUI(win);
+            }
 
         });
 
@@ -305,27 +330,30 @@ class PlaylistManager {
         frame.setVisible(true);
     }
 
-    
-    
-    
-    
     public void swapJSONTracks(int from, int to) {
-        ArrayList<JSONObject> JSONTracks = this.playlist.getTracksJSONArrayList();
+        ArrayList<JsonObject> JSONTracks = this.playlist.getTracksJsonArrayList();
 
         Collections.swap(JSONTracks, from, to);
 
-        this.playlistJSON = new JSONArray(JSONTracks);
+        this.playlistJSON = new JsonArray();
+
+        for (JsonObject jo : JSONTracks) {
+            this.playlistJSON.add(jo);
+        }
     }
 
     public void insertJSONTrack(int from, int to) {
 
-        ArrayList<JSONObject> JSONTracks = this.playlist.getTracksJSONArrayList();
+        ArrayList<JsonObject> JSONTracks = this.playlist.getTracksJsonArrayList();
 
-        JSONObject removed = JSONTracks.get(from);
+        JsonObject removed = JSONTracks.get(from);
         JSONTracks.remove(from);
         JSONTracks.add(to, removed);
 
-        this.playlistJSON = new JSONArray(JSONTracks);
+        this.playlistJSON = new JsonArray();
+        for (JsonObject jo : JSONTracks) {
+            this.playlistJSON.add(jo);
+        }
     }
 
     public void showStatus() {
@@ -341,7 +369,7 @@ class PlaylistManager {
             if (PlaylistManager.authorizedToken != null) {
                 currentStatus.setText("Authorized");
                 login.setVisible(false);
-                PlaylistManager.this.userID = new JSONObject(this.getUserProfile()).getString("id");
+                PlaylistManager.this.userID = JsonParser.parseString(this.getUserProfile()).getAsJsonObject().get("id").getAsString();
             }
         });
 
@@ -363,22 +391,22 @@ class PlaylistManager {
     }
 
     /* 	public static void uploadPlaylist(PlaylistManager man){
-		String playlistID = new JSONObject(createPlaylist(man)).getString("id");
-		JSONArray currentPlaylist = man.playlist;
+		String playlistID = new JsonObject(createPlaylist(man)).getString("id");
+		JsonArray currentPlaylist = man.playlist;
 		int size = currentPlaylist.length();
 		int countSize = 0;
 		
 		
 		while(countSize <= size){
-			JSONArray trackUris = new JSONArray();
+			JsonArray trackUris = new JsonArray();
 			
 			for (int i = countSize; i <countSize+100 && i < size; i++){
-				trackUris.put(man.playlist.getJSONObject(i).getJSONObject("track").getString("uri"));
+				trackUris.put(man.playlist.getJsonObject(i).getJsonObject("track").getString("uri"));
 				
 				
 			}
 			
-			JSONObject trackUriObject = new JSONObject();
+			JsonObject trackUriObject = new JsonObject();
 			trackUriObject.put("uris",trackUris);
 			
 			try{
@@ -394,30 +422,29 @@ class PlaylistManager {
 			countSize += 100;
 		}
 	} */
-    public static String createPlaylist(PlaylistManager man) {
-        String responseBody = null;
-        JSONObject requestBody = new JSONObject();
-        requestBody.put("name", "default");
-
-        try {
-            HttpRequest createRequest = HttpRequest.newBuilder()
-                    .uri(new URI("https://api.spotify.com/v1/users/" + man.userID + "/playlists"))
-                    .headers("Authorization", "Bearer " + man.authorizedToken)
-                    .POST(HttpRequest.BodyPublishers.ofString(requestBody.toString()))
-                    .build();
-
-            HttpResponse<String> response = HttpClient.newHttpClient().send(createRequest, HttpResponse.BodyHandlers.ofString());
-            responseBody = response.body();
-        } catch (Exception e) {
-        }
-
-        return (responseBody);
-    }
-
+//    public static String createPlaylist(PlaylistManager man) {
+//        String responseBody = null;
+//        JsonObject requestBody = new JsonObject();
+//        requestBody.add("name", "default");
+//
+//        try {
+//            HttpRequest createRequest = HttpRequest.newBuilder()
+//                    .uri(new URI("https://api.spotify.com/v1/users/" + man.userID + "/playlists"))
+//                    .headers("Authorization", "Bearer " + man.authorizedToken)
+//                    .POST(HttpRequest.BodyPublishers.ofString(requestBody.toString()))
+//                    .build();
+//
+//            HttpResponse<String> response = HttpClient.newHttpClient().send(createRequest, HttpResponse.BodyHandlers.ofString());
+//            responseBody = response.body();
+//        } catch (Exception e) {
+//        }
+//
+//        return (responseBody);
+//    }
     public void showUserPlaylists() {
-        JSONObject userPlaylistsJSON = new JSONObject(this.getUserPlaylists());
-        int userPlaylistsTotal = userPlaylistsJSON.getInt("total");
-        JSONArray userPlaylistsJSONArray = userPlaylistsJSON.getJSONArray("items");
+        JsonObject userPlaylistsJSON = JsonParser.parseString(this.getUserPlaylists()).getAsJsonObject();
+        int userPlaylistsTotal = userPlaylistsJSON.get("total").getAsInt();
+        JsonArray userPlaylistsJsonArray = userPlaylistsJSON.getAsJsonArray("items");
 
         JPanel userPlaylistsPanel = new JPanel();
         userPlaylistsPanel.setLayout(new BoxLayout(userPlaylistsPanel, BoxLayout.Y_AXIS));
@@ -427,8 +454,8 @@ class PlaylistManager {
         userPlaylistsPanel.add(playlistsRowHeader);
 
         for (int i = 0; i < userPlaylistsTotal; i++) {
-            JSONObject playlistJSON = userPlaylistsJSONArray.getJSONObject(i);
-            String playlistID = playlistJSON.getString("id");
+            JsonObject playlistJSON = userPlaylistsJsonArray.get(i).getAsJsonObject();
+            String playlistID = playlistJSON.get("id").getAsString();
 
             JButton loadButton = new JButton("load");
             loadButton.addActionListener(e -> {
@@ -436,7 +463,7 @@ class PlaylistManager {
                 this.populate();
             });
 
-            JLabel playlistName = new JLabel(playlistJSON.getString("name"));
+            JLabel playlistName = new JLabel(playlistJSON.get("name").getAsString());
             playlistName.setVerticalAlignment(JLabel.BOTTOM);
 
             JPanel playlistsRow = new JPanel();
@@ -447,7 +474,7 @@ class PlaylistManager {
             userPlaylistsPanel.add(playlistsRow);
         }
 
-        JDialog userPlaylistsFrame = new JDialog(this.getFrame(),"User Playlists");
+        JDialog userPlaylistsFrame = new JDialog(this.getFrame(), "User Playlists");
         userPlaylistsFrame.add(userPlaylistsPanel, BorderLayout.CENTER);
 
         userPlaylistsFrame.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
@@ -463,11 +490,11 @@ class PlaylistManager {
 
     public void showUserInfo() {
 
-        JSONObject userInfoJSON = new JSONObject(this.getUserProfile());
+        JsonObject userInfoJSON = JsonParser.parseString(this.getUserProfile()).getAsJsonObject();
         JLabel profileImageIconLabel = null;
 
         try {
-            URL profileImageURL = new URL(userInfoJSON.getJSONArray("images").getJSONObject(0).getString("url"));
+            URL profileImageURL = new URL(userInfoJSON.getAsJsonArray("images").get(0).getAsJsonObject().get("url").getAsString());
             Image profileImage = ImageIO.read(profileImageURL);
             ImageIcon profileImageIcon = new ImageIcon(profileImage.getScaledInstance(100, 100, Image.SCALE_DEFAULT));
             profileImageIconLabel = new JLabel(profileImageIcon);
@@ -475,11 +502,11 @@ class PlaylistManager {
         } catch (Exception e) {
         }
 
-        JLabel name = new JLabel("Name: " + userInfoJSON.getString("display_name"), SwingConstants.CENTER);
-        JLabel email = new JLabel("Email: " + userInfoJSON.getString("email"), SwingConstants.CENTER);
-        JLabel id = new JLabel("ID: " + userInfoJSON.getString("id"), SwingConstants.CENTER);
-        JLabel country = new JLabel("Country: " + userInfoJSON.getString("country"), SwingConstants.CENTER);
-        JLabel subscription = new JLabel("Subscription: " + userInfoJSON.getString("type"), SwingConstants.CENTER);
+        JLabel name = new JLabel("Name: " + userInfoJSON.get("display_name"), SwingConstants.CENTER);
+        JLabel email = new JLabel("Email: " + userInfoJSON.get("email"), SwingConstants.CENTER);
+        JLabel id = new JLabel("ID: " + userInfoJSON.get("id"), SwingConstants.CENTER);
+        JLabel country = new JLabel("Country: " + userInfoJSON.get("country"), SwingConstants.CENTER);
+        JLabel subscription = new JLabel("Subscription: " + userInfoJSON.get("type"), SwingConstants.CENTER);
 
         JPanel userInfoPanel = new JPanel();
         userInfoPanel.setLayout(new BoxLayout(userInfoPanel, BoxLayout.Y_AXIS));
@@ -489,7 +516,7 @@ class PlaylistManager {
         userInfoPanel.add(country);
         userInfoPanel.add(subscription);
 
-        JDialog userInfoFrame = new JDialog(this.getFrame(),"User Information");
+        JDialog userInfoFrame = new JDialog(this.getFrame(), "User Information");
         userInfoFrame.add(userInfoPanel, BorderLayout.CENTER);
         userInfoFrame.add(profileImageIconLabel, BorderLayout.WEST);
 
@@ -515,7 +542,7 @@ class PlaylistManager {
 
         if (response == JFileChooser.APPROVE_OPTION) {
             if (this.clearPlaylistConfirmation()) {
-                this.playlistJSON = new JSONArray(readFromFile(fc.getSelectedFile()));
+                this.playlistJSON = JsonParser.parseString(readFromFile(fc.getSelectedFile())).getAsJsonArray();
                 this.populate();
             }
         }
@@ -527,17 +554,16 @@ class PlaylistManager {
         }
 
         String response = APIHandler.getRequestResponse("https://api.spotify.com/v1/playlists/" + playlistID);
-        JSONObject responseJSON = new JSONObject(response);
+        JsonObject responseJSON = JsonParser.parseString(response).getAsJsonObject();
 
-        if (responseJSON.optJSONObject("error") != null) {
-            return (false);
-        }
-
+//        if (responseJSON.optJsonObject("error") != null) {
+//            return (false);
+//        }
         return (true);
     }
 
     public void promptPlaylistID() {
-        JDialog prompt = new JDialog(this.getFrame(),"Playlist ID");
+        JDialog prompt = new JDialog(this.getFrame(), "Playlist ID");
         prompt.getContentPane().add(new JLabel("Please Enter Public Playlist ID", SwingConstants.CENTER), BorderLayout.NORTH);
 
         JTextField playlistInput = new JTextField();
@@ -579,7 +605,7 @@ class PlaylistManager {
     }
 
     public void clearPlaylist() {
-        this.playlist = new Playlist(this);
+        this.playlist = new Playlist(this, null);
         this.playlistScrollContainer.setViewportView(this.playlist);
         this.playlistScrollContainer.repaint();
         this.playlistScrollContainer.revalidate();
@@ -601,7 +627,7 @@ class PlaylistManager {
 
     public void populate() {
         //progressBar
-        ProgressBarDialog pbd = new ProgressBarDialog("Loading Tracks", new JProgressBar(0, this.playlistJSON.length()));
+        ProgressBarDialog pbd = new ProgressBarDialog("Loading Tracks", new JProgressBar(0, this.playlistJSON.size()));
 
         SwingWorker sw = new SwingWorker() {
             @Override
@@ -609,13 +635,13 @@ class PlaylistManager {
                 //Table Header - Visible Labels
                 Track header = new Track(PlaylistManager.this.playlist, true, null);
                 Track.populateHeaderTrack(header);
-                
+
                 PlaylistManager.this.header = header;
                 PlaylistManager.this.playlistScrollContainer.setColumnHeaderView(header);
 
                 //Table Body
-                for (int i = 0; i < PlaylistManager.this.playlistJSON.length(); i++) {
-                    JSONObject currentTrack = PlaylistManager.this.playlistJSON.getJSONObject(i);
+                for (int i = 0; i < PlaylistManager.this.playlistJSON.size(); i++) {
+                    JsonObject currentTrack = PlaylistManager.this.playlistJSON.get(i).getAsJsonObject();
                     Track newTrack = new Track(PlaylistManager.this.playlist, false, currentTrack);
 
                     Track.populateBodyTrack(newTrack, i);
@@ -625,6 +651,8 @@ class PlaylistManager {
                     PlaylistManager.this.playlist.repaint();
                     PlaylistManager.this.playlist.revalidate();
                 }
+                PlaylistManager.this.playlist.setTracks(PlaylistManager.this.playlist.getLoadedTracksArrayList());
+
                 return ("");
             }
 
@@ -663,7 +691,6 @@ class PlaylistManager {
         } catch (Exception e) {
         }
 
-
         return (returnCode);
     }
 
@@ -688,8 +715,8 @@ class PlaylistManager {
         }
     }
 
-    public void appendToPlaylistJSON(JSONObject toAdd) {
-        this.playlistJSON.put(toAdd);
+    public void appendToPlaylistJSON(JsonObject toAdd) {
+        this.playlistJSON.add(toAdd);
     }
 
     public void removeFromPlaylistJSON(Track toRemove) {
@@ -707,7 +734,7 @@ class PlaylistManager {
         File cache = new File("cache.txt");
         try {
             if (cache.createNewFile()) {
-                writeToFile((new JSONArray()).toString(), cache);
+                writeToFile((new JsonArray()).toString(), cache);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -721,8 +748,8 @@ class PlaylistManager {
     }
 
     public static void writeToCache(String track) {
-        JSONArray cacheTracks = new JSONArray(readFromCache());
-        cacheTracks.put(new JSONObject(track));
+        JsonArray cacheTracks = JsonParser.parseString(readFromCache()).getAsJsonArray();
+        cacheTracks.add(JsonParser.parseString(track));
         writeToFile(cacheTracks.toString(), getCache());
     }
 
