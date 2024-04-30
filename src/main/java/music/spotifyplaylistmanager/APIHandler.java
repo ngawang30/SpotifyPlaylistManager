@@ -70,7 +70,7 @@ public class APIHandler {
             }
 
             if (!inCache && !isNullTrack(currentTrack)) {
-                currentTrack = refineTrack(currentTrack);
+                currentTrack = refineTrackJson(currentTrack);
                 customArray.add(currentTrack);
             }
 
@@ -88,7 +88,7 @@ public class APIHandler {
         }
     }
 
-    public static JsonObject refineTrack(JsonObject unrefinedTrack) {
+    public static JsonObject refineTrackJson(JsonObject unrefinedTrack) {
         System.out.println(unrefinedTrack);
         JsonObject refinedTrack = parseSpotifyInfo(unrefinedTrack);
         parseMusicBrainzInfo(refinedTrack);
@@ -135,8 +135,8 @@ public class APIHandler {
         String explicit = String.valueOf(currentTrack.get("explicit"));
         newJSON.add("explicit", new JsonPrimitive(explicit));
 
-        String isrc = currentTrack.getAsJsonObject("external_ids").get("isrc").getAsString();
-        newJSON.add("isrc", new JsonPrimitive(isrc));
+        String uri = currentTrack.getAsJsonPrimitive("uri").getAsString();
+        newJSON.add("uri", new JsonPrimitive(uri));
 
         String id = currentTrack.get("id").getAsString();
         newJSON.add("id", new JsonPrimitive(id));
@@ -257,6 +257,7 @@ public class APIHandler {
             response = responseBody.body();
 
         } catch (Exception e) {
+            e.printStackTrace();
         }
 
         return (response);

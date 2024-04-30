@@ -3,6 +3,7 @@ package music.spotifyplaylistmanager;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.swing.BorderFactory;
@@ -13,19 +14,16 @@ import javax.swing.event.DocumentListener;
 
 public class Filter extends JPanel {
     //Syntax:  [field]:"[value]"
-
-    private JTextField inputField;
+    private final PlaylistManager man;
+    private final JTextField inputField;
     private boolean active;
-    private PlaylistManager man;
-    private ArrayList<Track> originalTracks;
+    private static HashMap<String,String> toEnum;
 
     public Filter(PlaylistManager man) {
         super(new GridBagLayout());
         this.setBorder(BorderFactory.createEtchedBorder());
         this.man = man;
-
-        originalTracks = man.getPlaylist().getLoadedTracksArrayList();
-
+        
         GridBagConstraints c = new GridBagConstraints();
         inputField = new JTextField();
 
@@ -50,14 +48,16 @@ public class Filter extends JPanel {
         c.weightx = 1;
         c.anchor = GridBagConstraints.EAST;
         this.add(inputField, c);
+        
+//        toEnum = new HashMap(){{
+//            put("track","TRACK");
+//            put("artist","ARTIST");
+//            put("release","ARTIST");
+//        }};
     }
 
     public JTextField getInputField() {
         return inputField;
-    }
-
-    public void setInputField(JTextField inputField) {
-        this.inputField = inputField;
     }
 
     public boolean isActive() {
@@ -91,14 +91,14 @@ public class Filter extends JPanel {
 
             for (String s : validFilters) {
 
-                String filterDataName = getFilterType(s);
+                String filterDataName = getFilterType(s).toUpperCase();
                 String filterValue = getFilterValue(s).replaceAll("\"", "").toLowerCase();
                 Data filterData;
 
                 if (!filterValue.isEmpty()) {
                     for (int i = 0; i < filteringList.size(); i++) {
                         Track currentTrack = filteringList.get(i);
-                        filterData = currentTrack.findData(Type.valueOf(filterDataName));
+                        filterData = currentTrack.findData(DataType.valueOf(filterDataName));
 
                         if (!(filterData.toString().toLowerCase().contains(filterValue))) {
                             filteringList.remove(currentTrack);
@@ -114,7 +114,7 @@ public class Filter extends JPanel {
 
     public boolean isFilter(String filter) {
         String[] sepFilter = filter.split(":");
-        String filterType = sepFilter[0];
+        String filterType = sepFilter[0].toUpperCase();
 
         //not formatted
         if (sepFilter.length == 0) {
@@ -124,12 +124,12 @@ public class Filter extends JPanel {
         //of enumeration
         try {
             //check if filter target column is visible
-            if (!this.man.getHeader().findData(Type.valueOf(filterType)).getType().isVisible()) {
+            if (!this.man.getHeader().findData(DataType.valueOf(filterType)).getDataType().isVisible()) {
                 return (false);
             }
 
             //disallow non-alphabetical columns
-            if (!(Type.valueOf(filterType)).isSupportsFilter()) {
+            if (!(DataType.valueOf(filterType)).isSupportsFilter()) {
                 return (false);
             }
 

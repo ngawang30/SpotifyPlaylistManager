@@ -160,13 +160,14 @@ class ComparatorPlayer extends MusicPlayer {
             if (((JButton) e.getSource()).getParent() == this.pc.getLeftPlayer()) {
                 //Swap if chosen is higher than the other
                 if (leftTrack.getNumInt() > rightTrack.getNumInt()) {
-                    leftTrack.insertTrack(rightTrack);
+                    
+                    pc.getMan().getInvoker().executeSPMCommand(new InsertTrackSPMCommand(leftTrack,rightTrack));
                 }
 
                 this.pc.getContenders().remove(this.pc.getRightPlayer().track);
             } else {
                 if (leftTrack.getNumInt() < rightTrack.getNumInt()) {
-                    rightTrack.insertTrack(leftTrack);
+                    pc.getMan().getInvoker().executeSPMCommand(new InsertTrackSPMCommand(rightTrack,leftTrack));
                 }
 
                 this.pc.getContenders().remove(this.pc.getLeftPlayer().track);

@@ -5,23 +5,41 @@ import com.google.gson.JsonParser;
 import javax.swing.JPanel;
 import java.awt.GridBagLayout;
 import java.awt.Component;
+import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
+import javax.swing.AbstractAction;
+import javax.swing.Action;
 import javax.swing.JOptionPane;
+import javax.swing.KeyStroke;
 
 class Playlist extends JPanel {
-
+    private final PlaylistManager man;
     private static Data sortingData;
     private ArrayList<Track> tracks;
     private Track from;
     private Track to;
-    private PlaylistManager man;
+    
 
     public Playlist(PlaylistManager man, ArrayList<Track> tracks) {
         this.setLayout(new GridBagLayout());
         this.tracks = tracks;
         this.man = man;
+        
+        Action undoAction = new AbstractAction(){
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Playlist.this.man.getInvoker().undoLastCommand();
+            }
+        };
+        
+        KeyStroke undo = KeyStroke.getKeyStroke(KeyEvent.VK_Z, KeyEvent.CTRL_DOWN_MASK);
+        this.getInputMap().put(undo, "undo");
+        this.getActionMap().put("undo",undoAction);
+        
+        
     }
 
     public static Data getSortingData() {
@@ -60,10 +78,6 @@ class Playlist extends JPanel {
         return man;
     }
 
-    public void setMan(PlaylistManager man) {
-        this.man = man;
-    }
-
     public boolean isEmpty() {
         if (this.getComponents().length != 0) {
             return (false);
@@ -97,6 +111,10 @@ class Playlist extends JPanel {
         this.man.getFrame().repaint();
         this.man.getFrame().revalidate();
     }
+    
+    public Track getTrackAt(int num){
+        return(this.tracks.get(num-1));
+    }
 
     public Track[] getLoadedTracks() {
         Component[] components = this.getComponents();
@@ -126,29 +144,44 @@ class Playlist extends JPanel {
         return (JSONTracks);
     }
 
-    public void addTrack(Track toAdd) {
-        String id = toAdd.getIDInt();
-        JsonObject trackJSON = JsonParser.parseString(APIHandler.getRequestResponse("https://api.spotify.com/v1/tracks/" + id)).getAsJsonObject();
-        trackJSON = (JsonObject) APIHandler.refineTrack(trackJSON);
-        this.man.appendToPlaylistJSON(trackJSON);
-
-        this.man.clearPlaylist();
-        this.man.populate();
+    public void addTrack(Track refinedTrack) {
+        //add
+        
+        //-toJson
+        this.man.appendToPlaylistJSON(refinedTrack.getTrackJSON());
+        
+        //-toGUI
+        refinedTrack.initializeTrack();
+        this.add(refinedTrack,refinedTrack.getConstraints()); 
+        
+        //toLocalVariable
+        this.tracks.add(refinedTrack);
+        refinedTrack.setLoaded(true);
+        
+        this.reloadColumns();
+        this.man.getFrame().repaint();
+        this.man.getFrame().revalidate();
     }
 
     public void removeTrack(Track toRemove) {
         ArrayList<Track> tracks = this.getLoadedTracksArrayList();
+        
+        //Remove
+        //-fromJson
         this.man.removeFromPlaylistJSON(toRemove);
 
+        //-fromGUI
         tracks.remove(toRemove);
-
+        
+        //from local variable
+        this.tracks.remove(toRemove);
+        
         this.cheapLoad(tracks, true);
         this.repaint();
         this.revalidate();
     }
 
-    public void toggleColumn(Data columnData) {
-        Type target = columnData.getType();
+    public void toggleColumn(DataType target){
         Track header = this.man.getHeader();
         ArrayList<Track> tracks = this.man.getPlaylist().tracks;
 
@@ -171,5 +204,12 @@ class Playlist extends JPanel {
 
         this.man.getFrame().repaint();
         this.man.getFrame().revalidate();
+    }
+    
+    public void reloadColumns(){
+        Object[] enums = DataType.class.getEnumConstants();
+        for (Object dataType: enums){
+            toggleColumn((DataType)dataType);
+        }
     }
 }

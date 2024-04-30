@@ -28,7 +28,7 @@ public class MusicPlayer extends JPanel {
     private JLabel songName;
     private JLabel artist;
     private Track loadedTrack;
-    private JPanel controls;
+    private final JPanel controls;
     private JLabel cover;
     private ArrayList<Track> queue;
     private JProgressBar pb;
@@ -168,10 +168,6 @@ public class MusicPlayer extends JPanel {
 
     public JPanel getControls() {
         return controls;
-    }
-
-    public void setControls(JPanel controls) {
-        this.controls = controls;
     }
 
     public JLabel getCover() {

@@ -18,7 +18,6 @@ class ProgressBarDialog extends JDialog {
         this.pb = pb;
         pb.setStringPainted(true);
         pb.setString("0%");
-
         this.addWindowListener(new WindowAdapter() {
             @Override
             public void windowDeactivated(WindowEvent e) {

@@ -1,6 +1,8 @@
 package music.spotifyplaylistmanager;
 
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import java.awt.BorderLayout;
 import javax.swing.JPanel;
 import javax.swing.JMenuItem;
 import java.awt.GridBagLayout;
@@ -29,13 +31,15 @@ import java.util.Objects;
 import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
+import javax.swing.JDialog;
+import javax.swing.JLabel;
 import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
 
 class Track extends JPanel {
-
     private PlaylistManager man;
-    private ArrayList<TrackColor> palette;
     private Playlist playlist;
+    private ArrayList<TrackColor> palette;
     private JsonObject trackJSON;
     private Data num;
     private Data cover;
@@ -53,6 +57,7 @@ class Track extends JPanel {
     private Data artist;
     private GridBagConstraints constraints;
     private boolean header;
+    private boolean loaded;
     private static int clicks;
 
     //Constructor for Recommendations
@@ -60,96 +65,13 @@ class Track extends JPanel {
         this.man = man;
         this.trackJSON = trackJSON;
         this.setLayout(new GridBagLayout());
-
-        this.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-
-                if (SwingUtilities.isRightMouseButton(e)) {
-                    showTrackMenu(e.getX(), e.getY(), false);
-                } else {
-                    TimerTask clickTimer = new TimerTask() {
-                        @Override
-                        public void run() {
-                            clicks = 0;
-                        }
-                    };
-
-                    Timer clickInterval = new Timer();
-                    clickInterval.schedule(clickTimer, 250);
-
-                    clicks++;
-
-                    if (clicks == 2) {
-                        Track.this.man.getMusicPlayer().setQueue(Track.this);
-                        man.getMusicPlayer().loadTrack(Track.this);
-                        man.getMusicPlayer().play();
-                    }
-                }
-            }
-        });
     }
 
     //Constructor for Playlist
-    public Track(Playlist playlist, boolean isHeader, JsonObject trackJSON) {
+    public Track(Playlist playlist, JsonObject trackJSON) {
         this.trackJSON = trackJSON;
         this.setLayout(new GridBagLayout());
-        this.header = isHeader;
         this.playlist = playlist;
-        this.getWidth();
-
-        if (!this.header) {
-            this.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseEntered(MouseEvent e) {
-                    Track.this.playlist.setTo((Track) e.getSource());
-                }
-
-                @Override
-                public void mouseReleased(MouseEvent e) {
-                    Playlist thisPlaylist = Track.this.playlist;
-
-                    if (thisPlaylist.getSortingData() == null) {
-                        Track.this.playlist.getFrom().insertTrack(Track.this.playlist.getTo());
-                        Track.this.playlist.setFrom(null);
-                        Track.this.playlist.setTo(null);
-                        thisPlaylist.repaint();
-                        thisPlaylist.revalidate();
-                    }
-                }
-
-                @Override
-                public void mousePressed(MouseEvent e) {
-                    Track.this.playlist.setFrom((Track) e.getComponent());
-                }
-
-                @Override
-                public void mouseClicked(MouseEvent e) {
-
-                    if (SwingUtilities.isRightMouseButton(e)) {
-                        showTrackMenu(e.getX(), e.getY(), true);
-                    } else {
-                        TimerTask clickTimer = new TimerTask() {
-                            @Override
-                            public void run() {
-                                clicks = 0;
-                            }
-                        };
-
-                        Timer clickInterval = new Timer();
-                        clickInterval.schedule(clickTimer, 250);
-
-                        clicks++;
-
-                        if (clicks == 2) {
-                            Track.this.playlist.getMan().getMusicPlayer().setQueue(Track.this);
-                            Track.this.playlist.getMan().getMusicPlayer().loadTrack(Track.this);
-                            Track.this.playlist.getMan().getMusicPlayer().play();
-                        }
-                    }
-                }
-            });
-        }
     }
 
     @Override
@@ -162,7 +84,7 @@ class Track extends JPanel {
 
             Graphics2D g2 = (Graphics2D) g;
 
-            if (!this.header) {
+            if (!this.header && this.loaded) {
 
                 Color a = this.palette.get(0);
                 float[] aHSB = Color.RGBtoHSB(a.getRed(), a.getGreen(), a.getBlue(), null);
@@ -191,7 +113,6 @@ class Track extends JPanel {
         int width = buff.getWidth();
         int dimension = Integer.min(height, width);
         int range = 100;
-
         HashMap<Integer, Integer> colorMap = new HashMap<>();
 
         for (int j = 0; j < dimension; j++) {
@@ -204,10 +125,8 @@ class Track extends JPanel {
                     int currentColorComp = new Color((int) key).getRGB();
                     double diff = getEuclidDiff(new Color(currentColor), new Color(currentColorComp));
                     if (diff < range) {
-
                         newColor = false;
                         colorMap.put(currentColorComp, colorMap.get(currentColorComp) + 1);
-
                     }
                 }
             }
@@ -255,10 +174,11 @@ class Track extends JPanel {
         }
 
         final Track other = (Track) obj;
-        if (this.getTrackName().getText().equals(other.getTrackName().getText()) && this.getArtist().getText().equals(other.getArtist().getText())) {
-            return (true);
+        if(this.getTrackName() == null? (other.getTrackName() != null):!this.getTrackName().getText().equals(other.getTrackName().getText())){
+            return (false);
         }
-        return (false);
+        
+        return (true);
     }
 
     public PlaylistManager getMan() {
@@ -267,14 +187,6 @@ class Track extends JPanel {
 
     public void setMan(PlaylistManager man) {
         this.man = man;
-    }
-
-    public ArrayList<TrackColor> getPalette() {
-        return palette;
-    }
-
-    public void setPalette(ArrayList<TrackColor> palette) {
-        this.palette = palette;
     }
 
     public Playlist getPlaylist() {
@@ -301,6 +213,14 @@ class Track extends JPanel {
         this.num = num;
     }
 
+    public boolean isLoaded() {
+        return loaded;
+    }
+
+    public void setLoaded(boolean loaded) {
+        this.loaded = loaded;
+    }
+
     public Data getCover() {
         return cover;
     }
@@ -319,10 +239,6 @@ class Track extends JPanel {
 
     public Data getLanguage() {
         return language;
-    }
-
-    public void setLanguage(Data language) {
-        this.language = language;
     }
 
     public Data getArtistType() {
@@ -434,8 +350,9 @@ class Track extends JPanel {
         c.gridx = 0;
         c.weightx = 1;
         c.insets = new Insets(0, 3, 0, 3);
-        Data numHeaderLabel = new Data(Type.number, "#", true, c, header);
+        Data numHeaderLabel = new Data(DataType.NUMBER, "#", true, c, header);
         numHeaderLabel.setPreferredSize(new Dimension(25, 50));
+        numHeaderLabel.addMouseListener(numHeaderLabel.getColumnMouseAdapter());
         header.num = numHeaderLabel;
         header.add(numHeaderLabel, c);
 
@@ -443,8 +360,9 @@ class Track extends JPanel {
         c.gridx = 1;
         c.weightx = 1;
         c.insets = new Insets(0, 3, 0, 3);
-        Data coverHeaderLabel = new Data(Type.cover, "Cover", true, c, header);
+        Data coverHeaderLabel = new Data(DataType.COVER, "Cover", true, c, header);
         coverHeaderLabel.setPreferredSize(new Dimension(100, 50));
+        coverHeaderLabel.addMouseListener(coverHeaderLabel.getColumnMouseAdapter());
         header.cover = coverHeaderLabel;
         header.add(coverHeaderLabel, c);
 
@@ -452,8 +370,9 @@ class Track extends JPanel {
         c.gridx = 2;
         c.weightx = 1;
         c.insets = new Insets(0, 3, 0, 3);
-        Data trackNameHeaderLabel = new Data(Type.track, "Track", true, c, header);
+        Data trackNameHeaderLabel = new Data(DataType.TRACK, "Track", true, c, header);
         trackNameHeaderLabel.setPreferredSize(new Dimension(150, 50));
+        trackNameHeaderLabel.addMouseListener(trackNameHeaderLabel.getColumnMouseAdapter());
         header.setTrackName(trackNameHeaderLabel);
         header.add(trackNameHeaderLabel, c);
 
@@ -461,8 +380,9 @@ class Track extends JPanel {
         c.gridx = 3;
         c.weightx = 1;
         c.insets = new Insets(0, 3, 0, 3);
-        Data artistNameHeaderLabel = new Data(Type.artist, "Artists", true, c, header);
+        Data artistNameHeaderLabel = new Data(DataType.ARTIST, "Artists", true, c, header);
         artistNameHeaderLabel.setPreferredSize(new Dimension(150, 50));
+        artistNameHeaderLabel.addMouseListener(artistNameHeaderLabel.getColumnMouseAdapter());
         header.artist = artistNameHeaderLabel;
         header.add(artistNameHeaderLabel, c);
 
@@ -470,8 +390,9 @@ class Track extends JPanel {
         c.gridx = 4;
         c.weightx = 1;
         c.insets = new Insets(0, 3, 0, 3);
-        Data durationHeaderLabel = new Data(Type.duration, "Duration", true, c, header);
+        Data durationHeaderLabel = new Data(DataType.DURATION, "Duration", true, c, header);
         durationHeaderLabel.setPreferredSize(new Dimension(150, 50));
+        durationHeaderLabel.addMouseListener(durationHeaderLabel.getColumnMouseAdapter());
         header.duration = durationHeaderLabel;
         header.add(durationHeaderLabel, c);
 
@@ -480,203 +401,212 @@ class Track extends JPanel {
         c.gridx = 5;
         c.weightx = 1;
         c.insets = new Insets(0, 3, 0, 3);
-        Data releasedDateHeaderLabel = new Data(Type.releasedData, "Released Date", true, c, header);
+        Data releasedDateHeaderLabel = new Data(DataType.RELEASE_DATE, "Released Date", true, c, header);
         releasedDateHeaderLabel.setPreferredSize(new Dimension(150, 50));
+        releasedDateHeaderLabel.addMouseListener(releasedDateHeaderLabel.getColumnMouseAdapter());
         header.releasedDate = releasedDateHeaderLabel;
 
         c = new GridBagConstraints();
         c.gridx = 6;
         c.weightx = 1;
         c.insets = new Insets(0, 3, 0, 3);
-        Data popularityLabelHeaderLabel = new Data(Type.popularity, "Popularity", true, c, header);
+        Data popularityLabelHeaderLabel = new Data(DataType.POPULARITY, "Popularity", true, c, header);
         popularityLabelHeaderLabel.setPreferredSize(new Dimension(150, 50));
+        popularityLabelHeaderLabel.addMouseListener(popularityLabelHeaderLabel.getColumnMouseAdapter());
         header.popularity = popularityLabelHeaderLabel;
 
         c = new GridBagConstraints();
         c.gridx = 7;
         c.weightx = 1;
         c.insets = new Insets(0, 3, 0, 3);
-        Data explicitLabelHeaderLabel = new Data(Type.explicit, "Explicit", true, c, header);
+        Data explicitLabelHeaderLabel = new Data(DataType.EXPLICIT, "Explicit", true, c, header);
         explicitLabelHeaderLabel.setPreferredSize(new Dimension(150, 50));
+        explicitLabelHeaderLabel.addMouseListener(explicitLabelHeaderLabel.getColumnMouseAdapter());
         header.explicit = explicitLabelHeaderLabel;
 
         c = new GridBagConstraints();
         c.gridx = 8;
         c.weightx = 1;
         c.insets = new Insets(0, 3, 0, 3);
-        Data artistTypeLabelHeaderLabel = new Data(Type.artistType, "Artist Type", true, c, header);
+        Data artistTypeLabelHeaderLabel = new Data(DataType.ARTIST_TYPE, "Artist Type", true, c, header);
         artistTypeLabelHeaderLabel.setPreferredSize(new Dimension(150, 50));
+        artistTypeLabelHeaderLabel.addMouseListener(artistTypeLabelHeaderLabel.getColumnMouseAdapter());
         header.artistType = artistTypeLabelHeaderLabel;
 
         c = new GridBagConstraints();
         c.gridx = 9;
         c.weightx = 1;
         c.insets = new Insets(0, 3, 0, 3);
-        Data artistCountryLabelHeaderLabel = new Data(Type.artistCountry, "Artist Country", true, c, header);
+        Data artistCountryLabelHeaderLabel = new Data(DataType.ARTIST_COUNTRY, "Artist Country", true, c, header);
         artistCountryLabelHeaderLabel.setPreferredSize(new Dimension(150, 50));
+        artistCountryLabelHeaderLabel.addMouseListener(artistCountryLabelHeaderLabel.getColumnMouseAdapter());
         header.artistCountry = artistCountryLabelHeaderLabel;
 
         c = new GridBagConstraints();
         c.gridx = 10;
         c.weightx = 1;
         c.insets = new Insets(0, 3, 0, 3);
-        Data artistGenderLabelHeaderLabel = new Data(Type.artistGender, "Gender", true, c, header);
+        Data artistGenderLabelHeaderLabel = new Data(DataType.ARTIST_GENDER, "Gender", true, c, header);
         artistGenderLabelHeaderLabel.setPreferredSize(new Dimension(150, 50));
+        artistGenderLabelHeaderLabel.addMouseListener(artistGenderLabelHeaderLabel.getColumnMouseAdapter());
         header.artistGender = artistGenderLabelHeaderLabel;
 
         c = new GridBagConstraints();
         c.gridx = 11;
         c.weightx = 1;
         c.insets = new Insets(0, 3, 0, 3);
-        Data isDeadLabelHeaderLabel = new Data(Type.deceased, "Deceased", true, c, header);
+        Data isDeadLabelHeaderLabel = new Data(DataType.DEAD, "Deceased", true, c, header);
         isDeadLabelHeaderLabel.setPreferredSize(new Dimension(150, 50));
+        isDeadLabelHeaderLabel.addMouseListener(isDeadLabelHeaderLabel.getColumnMouseAdapter());
         header.dead = isDeadLabelHeaderLabel;
 
         c = new GridBagConstraints();
         c.gridx = 12;
         c.weightx = 1;
         c.insets = new Insets(0, 3, 0, 3);
-        Data subAreaLabelHeaderLabel = new Data(Type.subArea, "Sub-Location", true, c, header);
+        Data subAreaLabelHeaderLabel = new Data(DataType.SUB_AREA, "Sub-Location", true, c, header);
         subAreaLabelHeaderLabel.setPreferredSize(new Dimension(150, 50));
+        subAreaLabelHeaderLabel.addMouseListener(subAreaLabelHeaderLabel.getColumnMouseAdapter());
         header.subArea = subAreaLabelHeaderLabel;
 
         c = new GridBagConstraints();
         c.gridx = 13;
         c.weightx = 1;
         c.insets = new Insets(0, 3, 0, 3);
-        Data languageLabelHeaderLabel = new Data(Type.language, "Language", true, c, header);
+        Data languageLabelHeaderLabel = new Data(DataType.LANGUAGE, "Language", true, c, header);
         languageLabelHeaderLabel.setPreferredSize(new Dimension(150, 50));
+        languageLabelHeaderLabel.addMouseListener(languageLabelHeaderLabel.getColumnMouseAdapter());
         header.language = languageLabelHeaderLabel;
     }
 
-    public static void populateBodyTrack(Track track, int num) {
-
+    public void populateBodyTrack() {
         try {
+            int num = this.playlist.getTracks().size();
             GridBagConstraints c = new GridBagConstraints();
             c.gridx = 0;
             c.weightx = 1;
             c.insets = new Insets(3, 3, 3, 3);
-            Data numLabel = new Data(Type.number, Integer.toString(num + 1), false, c, track);
+            Data numLabel = new Data(DataType.NUMBER, Integer.toString(num + 1), false, c, this);
             numLabel.setPreferredSize(new Dimension(25, 25));
-            track.num = numLabel;
+            this.num = numLabel;
 
             c = new GridBagConstraints();
             c.gridx = 1;
             c.weightx = 1;
             c.insets = new Insets(3, 3, 3, 3);
-            Data coverLabel = new Data(Type.cover, track.getCoverImage(), false, c, track);
+            Data coverLabel = new Data(DataType.COVER, this.getCoverImage(), false, c, this);
             coverLabel.setPreferredSize(new Dimension(100, 100));
-            track.cover = coverLabel;
+            this.cover = coverLabel;
 
             c = new GridBagConstraints();
             c.gridx = 2;
             c.weightx = 1;
             c.insets = new Insets(3, 3, 3, 3);
-            Data trackNameLabel = new Data(Type.track, track.trackJSON.get("trackName").getAsString(), false, c, track);
+            Data trackNameLabel = new Data(DataType.TRACK, this.trackJSON.get("trackName").getAsString(), false, c, this);
             trackNameLabel.setPreferredSize(new Dimension(150, 150));
-            track.setTrackName(trackNameLabel);
+            this.setTrackName(trackNameLabel);
 
             c = new GridBagConstraints();
             c.gridx = 3;
             c.weightx = 1;
             c.insets = new Insets(3, 3, 3, 3);
-            Data artistNameLabel = new Data(Type.artist, track.trackJSON.get("trackArtist").getAsString(), false, c, track);
+            Data artistNameLabel = new Data(DataType.ARTIST, this.trackJSON.get("trackArtist").getAsString(), false, c, this);
             artistNameLabel.setPreferredSize(new Dimension(150, 150));
-            track.artist = artistNameLabel;
+            this.artist = artistNameLabel;
 
             c = new GridBagConstraints();
             c.gridx = 4;
             c.weightx = 1;
             c.insets = new Insets(3, 3, 3, 3);
-            Data durationLabel = new Data(Type.duration, track.trackJSON.get("duration").getAsString(), false, c, track);
+            Data durationLabel = new Data(DataType.DURATION, this.trackJSON.get("duration").getAsString(), false, c, this);
             durationLabel.setPreferredSize(new Dimension(150, 150));
-            track.duration = durationLabel;
+            this.duration = durationLabel;
 
             //Hidden
             c = new GridBagConstraints();
             c.gridx = 5;
             c.weightx = 1;
             c.insets = new Insets(3, 3, 3, 3);
-            Data releasedDateLabel = new Data(Type.releasedData, track.trackJSON.get("releasedDate").getAsString(), false, c, track);
+            Data releasedDateLabel = new Data(DataType.RELEASE_DATE, this.trackJSON.get("releasedDate").getAsString(), false, c, this);
             releasedDateLabel.setPreferredSize(new Dimension(150, 150));
-            track.releasedDate = releasedDateLabel;
+            this.releasedDate = releasedDateLabel;
 
             c = new GridBagConstraints();
             c.gridx = 6;
             c.weightx = 1;
             c.insets = new Insets(3, 3, 3, 3);
-            Data popularityLabel = new Data(Type.popularity, track.trackJSON.get("popularity").getAsString(), false, c, track);
+            Data popularityLabel = new Data(DataType.POPULARITY, this.trackJSON.get("popularity").getAsString(), false, c, this);
             popularityLabel.setPreferredSize(new Dimension(150, 150));
-            track.popularity = popularityLabel;
+            this.popularity = popularityLabel;
 
             c = new GridBagConstraints();
             c.gridx = 7;
             c.weightx = 1;
             c.insets = new Insets(3, 3, 3, 3);
-            Data explicitLabel = new Data(Type.explicit, track.trackJSON.get("explicit").getAsString(), false, c, track);
+            Data explicitLabel = new Data(DataType.EXPLICIT, this.trackJSON.get("explicit").getAsString(), false, c, this);
             explicitLabel.setPreferredSize(new Dimension(150, 150));
-            track.explicit = explicitLabel;
+            this.explicit = explicitLabel;
 
             c = new GridBagConstraints();
             c.gridx = 8;
             c.weightx = 1;
             c.insets = new Insets(3, 3, 3, 3);
-            Data artistTypeLabel = new Data(Type.artistType, track.trackJSON.get("artistType").getAsString(), false, c, track);
+            Data artistTypeLabel = new Data(DataType.ARTIST_TYPE, this.trackJSON.get("artistType").getAsString(), false, c, this);
             artistTypeLabel.setPreferredSize(new Dimension(150, 150));
-            track.artistType = artistTypeLabel;
+            this.artistType = artistTypeLabel;
 
             c = new GridBagConstraints();
             c.gridx = 9;
             c.weightx = 1;
             c.insets = new Insets(3, 3, 3, 3);
-            Data artistCountryLabel = new Data(Type.artistCountry, track.trackJSON.get("artistCountry").getAsString(), false, c, track);
+            Data artistCountryLabel = new Data(DataType.ARTIST_COUNTRY, this.trackJSON.get("artistCountry").getAsString(), false, c, this);
             artistCountryLabel.setPreferredSize(new Dimension(150, 150));
-            track.artistCountry = artistCountryLabel;
+            this.artistCountry = artistCountryLabel;
 
             c = new GridBagConstraints();
             c.gridx = 10;
             c.weightx = 1;
             c.insets = new Insets(3, 3, 3, 3);
-            Data artistGenderLabel = new Data(Type.artistGender, track.trackJSON.get("artistGender").getAsString(), false, c, track);
+            Data artistGenderLabel = new Data(DataType.ARTIST_GENDER, this.trackJSON.get("artistGender").getAsString(), false, c, this);
             artistGenderLabel.setPreferredSize(new Dimension(150, 150));
-            track.artistGender = artistGenderLabel;
+            this.artistGender = artistGenderLabel;
 
             c = new GridBagConstraints();
             c.gridx = 11;
             c.weightx = 1;
             c.insets = new Insets(3, 3, 3, 3);
-            Data isDeadLabel = new Data(Type.deceased, track.trackJSON.get("isDead").getAsString(), false, c, track);
+            Data isDeadLabel = new Data(DataType.DEAD, this.trackJSON.get("isDead").getAsString(), false, c, this);
             isDeadLabel.setPreferredSize(new Dimension(150, 150));
-            track.dead = isDeadLabel;
+            this.dead = isDeadLabel;
 
             c = new GridBagConstraints();
             c.gridx = 12;
             c.weightx = 1;
             c.insets = new Insets(3, 3, 3, 3);
-            Data subAreaLabel = new Data(Type.subArea, track.trackJSON.get("subArea").getAsString(), false, c, track);
+            Data subAreaLabel = new Data(DataType.SUB_AREA, this.trackJSON.get("subArea").getAsString(), false, c, this);
             subAreaLabel.setPreferredSize(new Dimension(150, 150));
-            track.subArea = subAreaLabel;
+            this.subArea = subAreaLabel;
 
             c = new GridBagConstraints();
             c.gridx = 13;
             c.weightx = 1;
             c.insets = new Insets(3, 3, 3, 3);
-            Data languageLabel = new Data(Type.language, track.trackJSON.get("language").getAsString(), false, c, track);
+            Data languageLabel = new Data(DataType.LANGUAGE, this.trackJSON.get("language").getAsString(), false, c, this);
             languageLabel.setPreferredSize(new Dimension(150, 150));
-            track.language = languageLabel;
+            this.language = languageLabel;
 
             c = new GridBagConstraints();
             c.gridy = num + 1;
             c.fill = GridBagConstraints.HORIZONTAL;
             c.gridx = 0;
             c.weightx = 1;
-            track.constraints = c;
-            track.setBorder(BorderFactory.createLineBorder(Color.BLACK));
-            track.playlist.add(track, c);
+            this.constraints = c;
+            this.setBorder(BorderFactory.createLineBorder(Color.BLACK));
+            this.playlist.add(this, c);
+            this.addMouseListener(this.getPlaylistMouseAdapter());
         } catch (Exception e) {
             e.printStackTrace();
         }
-
     }
 
     public ImageIcon getCoverImage() {
@@ -688,6 +618,7 @@ class Track extends JPanel {
 
             trackCover = new ImageIcon(trackCoverImage.getScaledInstance(100, 100, Image.SCALE_DEFAULT));
         } catch (Exception e) {
+            e.printStackTrace();
         }
 
         return (trackCover);
@@ -699,7 +630,33 @@ class Track extends JPanel {
         if (!isPlaylist) {
             JMenuItem addToPlaylist = new JMenuItem("Add to Playlist");
             addToPlaylist.addActionListener(e -> {
-                this.man.getPlaylist().addTrack(this);
+                JDialog promptWait = new JDialog(this.man.getFrame());
+                promptWait.setLocationRelativeTo(this.man.getFrame());
+                promptWait.setTitle("Processing");
+                promptWait.add(new JLabel("Adding Track.  Please Wait."), BorderLayout.CENTER);
+                promptWait.pack();
+                
+                
+                SwingWorker sw = new SwingWorker(){
+                    @Override
+                    protected Object doInBackground() throws Exception {
+                        String trackID = Track.this.trackJSON.get("id").getAsString();
+                        JsonObject rawTrack = JsonParser.parseString(APIHandler.getRequestResponse("https://api.spotify.com/v1/tracks/" + trackID)).getAsJsonObject();
+                        JsonObject refinedTrackJson = APIHandler.refineTrackJson(rawTrack);
+                        Track refinedTrack = new Track(Track.this.man.getPlaylist(),refinedTrackJson);
+                        refinedTrack.populateBodyTrack();
+                        
+                        promptWait.dispose();
+                
+                        Track.this.man.getInvoker().executeSPMCommand(new AddTrackSPMCommand(Track.this.man.getPlaylist(),refinedTrack));
+                        
+                        return(null);
+                    }};
+                
+                sw.execute();
+                promptWait.setVisible(true);
+                
+                
             });
             pop.add(addToPlaylist);
         }
@@ -707,7 +664,7 @@ class Track extends JPanel {
         if (isPlaylist) {
             JMenuItem removeFromPlaylist = new JMenuItem("Remove From Playlist");
             removeFromPlaylist.addActionListener(e -> {
-                this.playlist.removeTrack(this);
+                this.playlist.getMan().getInvoker().executeSPMCommand(new RemoveTrackSPMCommand(this.playlist,Track.this));
             });
             pop.add(removeFromPlaylist);
         }
@@ -774,11 +731,11 @@ class Track extends JPanel {
         return (row);
     }
 
-    public Data findData(Type type) {
+    public Data findData(DataType type) {
         Data[] data = this.getRow();
 
         for (Data datum : data) {
-            if (datum.getType() == type) {
+            if (datum.getDataType() == type) {
                 return (datum);
             }
         }
@@ -795,23 +752,8 @@ class Track extends JPanel {
         this.add(this.duration, this.duration.getConstraints());
     }
 
-    public void swapTrack(Track toSwap) {
-        //Swap in JSON
-        this.playlist.getMan().swapJSONTracks(this.getNumInt() - 1, toSwap.getNumInt() - 1);
 
-        //Swap in Component
-        Playlist playlist = this.playlist;
-        int posA = this.getNumInt();
-        int posB = toSwap.getNumInt();
-
-        this.setY(posB);
-        this.num.setText(String.valueOf(posB));
-        toSwap.setY(posA);
-        toSwap.num.setText(String.valueOf(posA));
-        playlist.add(this, this.constraints);
-        playlist.add(toSwap, toSwap.constraints);
-    }
-
+    //Receiver Method
     public void insertTrack(Track to) {
         if (this != to && this != null && to != null) {
             Playlist playlist = this.playlist;
@@ -829,7 +771,92 @@ class Track extends JPanel {
             }
 
             playlist.cheapLoad(tracks, true);
+            Track.this.playlist.setFrom(null);
+            Track.this.playlist.setTo(null);
         }
+    }
+    
+    public MouseAdapter getPlaylistMouseAdapter(){
+        MouseAdapter adapter = new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                Track.this.playlist.setTo((Track) e.getSource());
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                Playlist thisPlaylist = Track.this.playlist;
+
+                if (thisPlaylist.getSortingData() == null && Track.this.getPlaylist().getFrom()!=Track.this.getPlaylist().getTo() ) {
+                    Track.this.playlist.getMan().getInvoker().executeSPMCommand(new InsertTrackSPMCommand(Track.this,Track.this.playlist.getTo()));
+                }
+            }
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+                Track.this.playlist.setFrom((Track) e.getComponent());
+            }
+
+            @Override
+            public void mouseClicked(MouseEvent e) {
+
+                if (SwingUtilities.isRightMouseButton(e)) {
+                    showTrackMenu(e.getX(), e.getY(), true);
+                } else {
+                    TimerTask clickTimer = new TimerTask() {
+                        @Override
+                        public void run() {
+                            clicks = 0;
+                        }
+                    };
+
+                    Timer clickInterval = new Timer();
+                    clickInterval.schedule(clickTimer, 250);
+
+                    clicks++;
+
+                    if (clicks == 2) {
+                        Track.this.playlist.getMan().getMusicPlayer().setQueue(Track.this);
+                        Track.this.playlist.getMan().getMusicPlayer().loadTrack(Track.this);
+                        Track.this.playlist.getMan().getMusicPlayer().play();
+                    }
+                }
+            }
+        };
+        
+        return(adapter);
+    }
+    
+    public MouseAdapter getRecommendationMouseAdapter(){
+        MouseAdapter adapter = new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+
+                if (SwingUtilities.isRightMouseButton(e)) {
+                    showTrackMenu(e.getX(), e.getY(), false);
+                } else {
+                    TimerTask clickTimer = new TimerTask() {
+                        @Override
+                        public void run() {
+                            clicks = 0;
+                        }
+                    };
+
+                    Timer clickInterval = new Timer();
+                    clickInterval.schedule(clickTimer, 250);
+
+                    clicks++;
+
+                    if (clicks == 2) {
+                        Track.this.man.getMusicPlayer().setQueue(Track.this);
+                        man.getMusicPlayer().loadTrack(Track.this);
+                        man.getMusicPlayer().play();
+                    }
+                }
+            }
+        };
+        
+        return(adapter);
     }
 }
 

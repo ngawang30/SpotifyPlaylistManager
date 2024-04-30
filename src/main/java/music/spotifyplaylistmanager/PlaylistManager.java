@@ -1,7 +1,5 @@
 package music.spotifyplaylistmanager;
 
-import com.formdev.flatlaf.FlatDarkLaf;
-import com.formdev.flatlaf.FlatLightLaf;
 import java.net.URL;
 import java.io.File;
 import java.io.FileWriter;
@@ -21,7 +19,6 @@ import javax.swing.JPanel;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import java.awt.Dimension;
-import java.awt.Window;
 import javax.swing.JOptionPane;
 import javax.swing.JDialog;
 import java.util.ArrayList;
@@ -32,22 +29,20 @@ import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Collections;
 import java.util.Base64;
-import java.util.Iterator;
 import javax.swing.JFrame;
-import javax.swing.JMenu;
-import javax.swing.JMenuBar;
-import javax.swing.JMenuItem;
-import javax.swing.JRadioButtonMenuItem;
-import javax.swing.JScrollBar;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
+import com.google.gson.JsonSyntaxException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 
+//Invoker CommandPattern
 class PlaylistManager {
-
-    private JFrame frame;
+    private final JFrame frame;
+    private final SPMInvoker invoker;
     private Filter filter;
     private JScrollPane playlistScrollContainer;
     private Track header;
@@ -55,26 +50,39 @@ class PlaylistManager {
     private JsonArray playlistJSON;
     private Playlist playlist;
     private String userID;
+    private Recommender recommender;
     private static String authorizedToken;
 
-    public PlaylistManager(JFrame frame) {
+    public PlaylistManager(JFrame frame, SPMInvoker invoker) {
         this.frame = frame;
-    }
-
-    public PlaylistManager() {
+        this.invoker = invoker;
     }
 
     public JFrame getFrame() {
         return frame;
     }
 
+    public SPMInvoker getInvoker() {
+        return invoker;
+    }
+
     public Filter getFilter() {
         return filter;
     }
-
-    public void setFilter(Filter filter) {
+    
+    public void setFilter(Filter filter){
         this.filter = filter;
     }
+
+    public Recommender getRecommender() {
+        return recommender;
+    }
+
+    public void setRecommender(Recommender recommender) {
+        this.recommender = recommender;
+    }
+    
+    
 
     public JScrollPane getPlaylistScrollContainer() {
         return playlistScrollContainer;
@@ -132,209 +140,11 @@ class PlaylistManager {
         PlaylistManager.authorizedToken = authorizedToken;
     }
 
-    public void app() {
-        FlatDarkLaf.setup();
-
-        frame = new JFrame("Spotify Playlist Manager");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(700, 600);
-        frame.setLocationRelativeTo(null);
-
-//        try {
-//            
-//            ArrayList<Image> images = new ArrayList();
-//            
-//            images.add(new ImageIcon("./res/img/SPMLogox40.png").getImage());
-//            images.add(new ImageIcon("./res/img/SPMLogox30.png").getImage());
-//            images.add(new ImageIcon("./res/img/SPMLogox20.png").getImage());
-//               
-//            frame.setIconImages(images);
-//
-//        } catch (Exception e){
-//            e.printStackTrace();
-//        }
-        PlaylistManager man = new PlaylistManager(frame);
-        man.setPlaylist(new Playlist(man, null));
-        man.setMusicPlayer(new MusicPlayer());
-        frame.add(man.getMusicPlayer(), BorderLayout.SOUTH);
-
-        man.setFilter(new Filter(man));
-
-        JScrollPane playlistContainerScroll = new JScrollPane();
-        playlistContainerScroll.setViewportView(man.getPlaylist());
-        playlistContainerScroll.getVerticalScrollBar().setUnitIncrement(10);
-        frame.add(playlistContainerScroll, BorderLayout.CENTER);
-
-        man.setPlaylistScrollContainer(playlistContainerScroll);
-
-        //Menu Component //File Item
-        JMenuItem importSpotifyMenuItem = new JMenuItem("Import Playlist From Spotify");
-        importSpotifyMenuItem.addActionListener(e -> {
-            if (man.isAuthorizedNotify()) {
-                man.promptPlaylistID();
-            }
-        });
-
-        JMenuItem importJSONMenuItem = new JMenuItem("Import Playlist From JSON");
-        importJSONMenuItem.addActionListener(e -> man.loadPlaylistFromJSON());
-
-        JMenuItem exportJSONMenuItem = new JMenuItem("Export Playlist to JSON");
-        exportJSONMenuItem.addActionListener(e -> {
-            if (!man.getPlaylist().isEmptyNotify()) {
-                man.exportToJSON();
-            }
-        });
-
-        JMenuItem exportSpotifyMenuItem = new JMenuItem("Export Playlist to Spotify");
-        exportSpotifyMenuItem.addActionListener(e -> {
-            if (man.isAuthorizedNotify() && !man.getPlaylist().isEmptyNotify()) {
-                //uploadPlaylist(man);
-            }
-        });
-
-        JMenuItem viewJSON = new JMenuItem("View JSON");
-        viewJSON.addActionListener(e -> {
-            JDialog jsonViewer = new JDialog(frame);
-            jsonViewer.setSize(400, 400);
-            jsonViewer.setLocationRelativeTo(frame);
-
-            JTextArea text = new JTextArea();
-            text.setEditable(false);
-            text.setLineWrap(true);
-            text.setWrapStyleWord(true);
-
-            if (man.getPlaylistJSON() != null) {
-                Iterator it = man.getPlaylistJSON().iterator();
-                while (it.hasNext()) {
-                    text.append(it.next().toString() + "\n\n");
-                }
-                text.setCaretPosition(0);
-            }
-
-            JScrollPane scroll = new JScrollPane(text);
-            JScrollBar scrollBar = scroll.getVerticalScrollBar();
-
-            jsonViewer.add(scroll, BorderLayout.CENTER);
-            jsonViewer.setVisible(true);
-        });
-
-        JMenuItem clearCacheItem = new JMenuItem("Clear Cache");
-        clearCacheItem.addActionListener(e -> PlaylistManager.clearCache());
-
-        JMenu FileMenu = new JMenu("File");
-
-        FileMenu.add(importSpotifyMenuItem);
-        FileMenu.add(importJSONMenuItem);
-        FileMenu.add(exportSpotifyMenuItem);
-        FileMenu.add(exportJSONMenuItem);
-        FileMenu.addSeparator();
-        FileMenu.add(viewJSON);
-        FileMenu.add(clearCacheItem);
-
-        //Menu Component //Profile Menu
-        JMenuItem info = new JMenuItem("User Info");
-        info.addActionListener(e -> {
-            if (man.isAuthorizedNotify()) {
-                man.showUserInfo();
-            }
-        });
-
-        JMenuItem playlists = new JMenuItem("User Playlists");
-        playlists.addActionListener(e -> {
-            if (man.isAuthorizedNotify()) {
-                man.showUserPlaylists();
-            }
-        });
-
-        JMenuItem status = new JMenuItem("Login Status");
-        status.addActionListener(e -> {
-            man.showStatus();
-        });
-
-        JMenu profile = new JMenu("Profile");
-        profile.add(info);
-        profile.add(playlists);
-        profile.add(status);
-
-        //Menu Component //Recommendation
-        JRadioButtonMenuItem filter = new JRadioButtonMenuItem("Filter");
-        filter.addActionListener(e -> {
-            if (man.filter.isActive()) {
-                man.filter.setActive(false);
-
-                man.frame.remove(man.filter);
-            } else {
-                filter.setEnabled(true);
-                man.filter.setActive(true);
-                man.frame.add(man.filter, BorderLayout.NORTH);
-            }
-
-            man.frame.revalidate();
-            man.frame.repaint();
-        });
-
-        JMenuItem recommendation = new JMenuItem("Recommendation");
-        recommendation.addActionListener(e -> {
-            if (man.isAuthorizedNotify()) {
-                new Recommender(man);
-            }
-        });
-
-        JMenuItem playlistTournament = new JMenuItem("Tournament");
-        playlistTournament.addActionListener(e -> {
-            if (!man.getPlaylist().isEmptyNotify()) {
-                new PlaylistComparator(man);
-            }
-        });
-
-        JMenu functions = new JMenu("Functions");
-        functions.add(filter);
-        functions.add(playlistTournament);
-        functions.add(recommendation);
-
-        //Menu Component //Help
-        JMenuItem openHelp = new JMenuItem("Open");
-        openHelp.addActionListener(e -> new Help(man));
-
-        JMenu helpMenu = new JMenu("Help");
-        helpMenu.add(openHelp);
-
-        //LightMode
-        JMenuItem toggleLightMode = new JMenuItem("🔆");
-        toggleLightMode.addActionListener(e -> {
-            Window[] windows = man.frame.getOwnedWindows();
-            String lookAndFeel = UIManager.getLookAndFeel().getName();
-            if (lookAndFeel.equals("FlatLaf Dark")) {
-                FlatLightLaf.setup();
-            } else {
-                FlatDarkLaf.setup();
-            }
-
-            SwingUtilities.updateComponentTreeUI(frame);
-
-            for (Window win : windows) {
-                SwingUtilities.updateComponentTreeUI(win);
-            }
-
-        });
-
-        //MenuBar Composition
-        JMenuBar menuBar = new JMenuBar();
-        menuBar.add(toggleLightMode);
-        menuBar.add(FileMenu);
-        menuBar.add(profile);
-        menuBar.add(functions);
-        menuBar.add(helpMenu);
-        frame.setJMenuBar(menuBar);
-
-        frame.setVisible(true);
-    }
-
     public void swapJSONTracks(int from, int to) {
         ArrayList<JsonObject> JSONTracks = this.playlist.getTracksJsonArrayList();
 
         Collections.swap(JSONTracks, from, to);
-
+        
         this.playlistJSON = new JsonArray();
 
         for (JsonObject jo : JSONTracks) {
@@ -356,91 +166,63 @@ class PlaylistManager {
         }
     }
 
-    public void showStatus() {
-        String authorization = PlaylistManager.authorizedToken == null ? "Not Logged in" : "Logged in";
-
-        JDialog prompt = new JDialog(this.getFrame(), "User Status");
-
-        JLabel currentStatus = new JLabel("Current Status:" + authorization, SwingConstants.CENTER);
-
-        JButton login = new JButton("Login");
-        login.addActionListener(e -> {
-            PlaylistManager.authorizedToken = APIHandler.getAuthorizedToken();
-            if (PlaylistManager.authorizedToken != null) {
-                currentStatus.setText("Authorized");
-                login.setVisible(false);
-                PlaylistManager.this.userID = JsonParser.parseString(this.getUserProfile()).getAsJsonObject().get("id").getAsString();
-            }
-        });
-
-        prompt.getContentPane().add(new JLabel("User Status", SwingConstants.CENTER), BorderLayout.NORTH);
-        prompt.getContentPane().add(currentStatus, BorderLayout.CENTER);
-        if (authorization.equals("Not Logged in")) {
-            prompt.getContentPane().add(login, BorderLayout.SOUTH);
-        }
-
-        prompt.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
-        prompt.setLocationRelativeTo(null);
-        prompt.setResizable(false);
-        prompt.pack();
-        prompt.setVisible(true);
-    }
-
     public String getUserProfile() {
         return (APIHandler.getRequestResponse("https://api.spotify.com/v1/me"));
     }
 
-    /* 	public static void uploadPlaylist(PlaylistManager man){
-		String playlistID = new JsonObject(createPlaylist(man)).getString("id");
-		JsonArray currentPlaylist = man.playlist;
-		int size = currentPlaylist.length();
-		int countSize = 0;
-		
-		
-		while(countSize <= size){
-			JsonArray trackUris = new JsonArray();
-			
-			for (int i = countSize; i <countSize+100 && i < size; i++){
-				trackUris.put(man.playlist.getJsonObject(i).getJsonObject("track").getString("uri"));
-				
-				
-			}
-			
-			JsonObject trackUriObject = new JsonObject();
-			trackUriObject.put("uris",trackUris);
-			
-			try{
-			HttpRequest addtrackNameRequest = HttpRequest.newBuilder()
-				.uri(new URI("https://api.spotify.com/v1/playlists/" + playlistID + "/tracks"))
-				.headers("Authorization","Bearer " + man.authorizedToken)
-				.POST(HttpRequest.BodyPublishers.ofString(trackUriObject.toString()))
-				.build();
-				
-				HttpResponse<String> response = HttpClient.newHttpClient().send(addtrackNameRequest, HttpResponse.BodyHandlers.ofString());
-			} catch(Exception e){}
-				
-			countSize += 100;
-		}
-	} */
-//    public static String createPlaylist(PlaylistManager man) {
-//        String responseBody = null;
-//        JsonObject requestBody = new JsonObject();
-//        requestBody.add("name", "default");
-//
-//        try {
-//            HttpRequest createRequest = HttpRequest.newBuilder()
-//                    .uri(new URI("https://api.spotify.com/v1/users/" + man.userID + "/playlists"))
-//                    .headers("Authorization", "Bearer " + man.authorizedToken)
-//                    .POST(HttpRequest.BodyPublishers.ofString(requestBody.toString()))
-//                    .build();
-//
-//            HttpResponse<String> response = HttpClient.newHttpClient().send(createRequest, HttpResponse.BodyHandlers.ofString());
-//            responseBody = response.body();
-//        } catch (Exception e) {
-//        }
-//
-//        return (responseBody);
-//    }
+    public void uploadPlaylist(){
+        String playlistID = createPlaylist(this);
+        JsonArray currentPlaylist = this.playlistJSON;
+        int size = currentPlaylist.size();
+        int countSize = 0;
+
+
+        while(countSize <= size){
+                JsonArray trackUris = new JsonArray();
+
+                for (int i = countSize; i <countSize+100 && i < size; i++){
+                        trackUris.add(currentPlaylist.get(i).getAsJsonObject().get("uri"));
+                }
+
+                JsonObject trackUriObject = new JsonObject();
+                trackUriObject.add("uris",trackUris);
+
+                try{
+                HttpRequest addtrackNameRequest = HttpRequest.newBuilder()
+                        .uri(new URI("https://api.spotify.com/v1/playlists/" + playlistID + "/tracks"))
+                        .headers("Authorization","Bearer " + this.authorizedToken)
+                        .POST(HttpRequest.BodyPublishers.ofString(trackUriObject.toString()))
+                        .build();
+
+                        HttpResponse<String> response = HttpClient.newHttpClient().send(addtrackNameRequest, HttpResponse.BodyHandlers.ofString());
+                } catch(Exception e){}
+                countSize += 100;
+        }
+    }
+    
+    public static String createPlaylist(PlaylistManager man) {
+        String responseBody = null;
+        JsonObject requestBody = new JsonObject();
+        requestBody.add("name", JsonParser.parseString("default"));
+
+        try {
+            HttpRequest createRequest = HttpRequest.newBuilder()
+                    .uri(new URI("https://api.spotify.com/v1/users/" + man.userID + "/playlists"))
+                    .headers("Authorization", "Bearer " + man.authorizedToken)
+                    .POST(HttpRequest.BodyPublishers.ofString(requestBody.toString()))
+                    .build();
+
+            HttpResponse<String> response = HttpClient.newHttpClient().send(createRequest, HttpResponse.BodyHandlers.ofString());
+            responseBody = response.body();
+        } catch (Exception e) {
+        }
+        
+        //get playlist id
+        String playlistID = JsonParser.parseString(responseBody).getAsJsonObject().get("id").getAsString();
+
+        return (playlistID);
+    }
+    
     public void showUserPlaylists() {
         JsonObject userPlaylistsJSON = JsonParser.parseString(this.getUserPlaylists()).getAsJsonObject();
         int userPlaylistsTotal = userPlaylistsJSON.get("total").getAsInt();
@@ -540,11 +322,15 @@ class PlaylistManager {
         JFileChooser fc = new JFileChooser();
         int response = fc.showOpenDialog(null);
 
-        if (response == JFileChooser.APPROVE_OPTION) {
-            if (this.clearPlaylistConfirmation()) {
-                this.playlistJSON = JsonParser.parseString(readFromFile(fc.getSelectedFile())).getAsJsonArray();
-                this.populate();
+        try{
+            if (response == JFileChooser.APPROVE_OPTION) {
+                if (this.clearPlaylistConfirmation()) {
+                    this.playlistJSON = JsonParser.parseString(readFromFile(fc.getSelectedFile())).getAsJsonArray();
+                    this.populate();
+                }
             }
+        } catch (JsonSyntaxException e){
+            JOptionPane.showMessageDialog(null, "Invalid File", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -605,7 +391,7 @@ class PlaylistManager {
     }
 
     public void clearPlaylist() {
-        this.playlist = new Playlist(this, null);
+        this.playlist = new Playlist(this, new ArrayList());
         this.playlistScrollContainer.setViewportView(this.playlist);
         this.playlistScrollContainer.repaint();
         this.playlistScrollContainer.revalidate();
@@ -633,7 +419,7 @@ class PlaylistManager {
             @Override
             protected String doInBackground() {
                 //Table Header - Visible Labels
-                Track header = new Track(PlaylistManager.this.playlist, true, null);
+                Track header = new Track(PlaylistManager.this.playlist, null);
                 Track.populateHeaderTrack(header);
 
                 PlaylistManager.this.header = header;
@@ -642,16 +428,18 @@ class PlaylistManager {
                 //Table Body
                 for (int i = 0; i < PlaylistManager.this.playlistJSON.size(); i++) {
                     JsonObject currentTrack = PlaylistManager.this.playlistJSON.get(i).getAsJsonObject();
-                    Track newTrack = new Track(PlaylistManager.this.playlist, false, currentTrack);
+                    Track newTrack = new Track(PlaylistManager.this.playlist, currentTrack);
 
-                    Track.populateBodyTrack(newTrack, i);
+                    newTrack.populateBodyTrack();
                     newTrack.initializeTrack();
+                    newTrack.setLoaded(true);
+                    PlaylistManager.this.playlist.getTracks().add(newTrack);
 
                     pbd.incrementValue();
                     PlaylistManager.this.playlist.repaint();
                     PlaylistManager.this.playlist.revalidate();
                 }
-                PlaylistManager.this.playlist.setTracks(PlaylistManager.this.playlist.getLoadedTracksArrayList());
+               
 
                 return ("");
             }
@@ -662,6 +450,7 @@ class PlaylistManager {
             }
         };
         sw.execute();
+        
     }
 
     public static String codeVerifier() {
@@ -686,8 +475,6 @@ class PlaylistManager {
             byte[] digest = md.digest();
 
             returnCode = Base64.getUrlEncoder().withoutPadding().encodeToString(digest).split("=")[0];
-
-            System.out.println(returnCode);
         } catch (Exception e) {
         }
 
@@ -774,14 +561,23 @@ class Help extends JDialog {
         JTextArea helpInstructions = new JTextArea();
         helpInstructions.setLineWrap(true);
         helpInstructions.setWrapStyleWord(true);
-        String movingTracks = "If tracks are not moving, be sure that no column is being ordered as track movement is disabled when sorted by any column.  To disable, click on sorted column until no sort symbol is shown or click on the number column to reset order";
+        String movingTracks = "If tracks are not moving, be sure that no column is being ordered as track movement is disabled when sorted by any column.  "
+                + "To disable, click on sorted column until no sort symbol is shown or click on the number column to reset order";
         String playingMusic = "If you have trouble playing music, make sure you have yt-dlp downloaded and have added it to your system path as this application uses it via command line.";
-        String trackSeeds = "In the recommendation feature, the only required input is the track seeds which is simply just a comma-separated list of song ids.  You can get song ids by right clicking on any loaded track and clicking \"copy track id\".";
-        String tournament = "The tournament feature places songs from the loaded playlist against one another and reorganizes the playlist based on your selection.  This was implemented to make ordering playlists more fun and to facilitate custom ordering on Spotify";
-        String cache = "When you load playlists from Spotify for the first time, it may take awhile.  However, upon future loads, tracks that you have loaded in before will be saved onto the cache, expediting the overall loading process. (You may clear it in the file menu at anytime)";
+        String Recommendation = "The recommendation feature allows you to specify song qualities such as accousticness, danceability, energy, etc.  "
+                + "Most have a scale of 0 to 1.0, but to make sure, you can hover over them to see valid inputs."
+                + "However, the only required input is the track seeds which is simply just a comma-separated list of song ids."
+                + "You can get song ids by right clicking on any loaded track and clicking \"copy track id\".";
+        String tournament = "The tournament feature places songs from the loaded playlist against one another and reorganizes the playlist based on your selection.  "
+                + "This was implemented to make ordering playlists more fun and to facilitate custom ordering on Spotify";
+        String cache = "When you load playlists from Spotify for the first time, it may take awhile.  "
+                + "However, upon future loads, tracks that you have loaded in before will be saved onto the cache, expediting the overall loading process. "
+                + "(You may clear it in the file menu at anytime)";
+        String filter = "In order to filter, active the filter bar via the menu item in the functions menu.  "
+                + "Then, using the visible column names, compose the filter like so: columnName:\"query\"";
         String others = "If you encounter any other problems, please contact me at ngawang30@gmail.com with issues";
 
-        JList helpOptions = new JList(new String[]{"Moving Tracks", "Playing Music", "Track Seeds", "Tournament", "Cache", "Others"});
+        JList helpOptions = new JList(new String[]{"Moving Tracks", "Playing Music", "Track Seeds", "Tournament", "Cache", "Filter", "Others"});
         helpOptions.addListSelectionListener(e -> {
             if (helpOptions.getSelectedValue().equals("Moving Tracks")) {
                 helpInstructions.setText(movingTracks);
@@ -792,7 +588,7 @@ class Help extends JDialog {
             }
 
             if (helpOptions.getSelectedValue().equals("Track Seeds")) {
-                helpInstructions.setText(trackSeeds);
+                helpInstructions.setText(Recommendation);
             }
 
             if (helpOptions.getSelectedValue().equals("Tournament")) {
@@ -801,6 +597,10 @@ class Help extends JDialog {
 
             if (helpOptions.getSelectedValue().equals("Cache")) {
                 helpInstructions.setText(cache);
+            }
+            
+            if (helpOptions.getSelectedValue().equals("Filter")) {
+                helpInstructions.setText(filter);
             }
 
             if (helpOptions.getSelectedValue().equals("Others")) {
